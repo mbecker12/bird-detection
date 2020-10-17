@@ -17,5 +17,8 @@
 #
 torch
 torchvision
+numpy
 black
 pylint
+albumentations
+opencv-python
