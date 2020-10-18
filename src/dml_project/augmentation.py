@@ -15,26 +15,23 @@ from torchvision import transforms
 import albumentations as a
 from albumentations.pytorch import ToTensorV2
 from time import time
-
-
-DATA_PATH = "./data/"
+from dml_project.util import load_images, load_bbox_file
+from dml_project.const import *
 
 
 class AlbumentationsDatasetCV2(Dataset):
     """__init__ and __len__ functions are the same as in TorchvisionDataset"""
 
-    def __init__(self, file_paths, labels, transform=None):
+    def __init__(self, file_paths, transform=None):
         self.file_paths = file_paths
-        self.labels = labels
         self.transform = transform
 
     def __len__(self):
         return len(self.file_paths)
 
     def __getitem__(self, idx):
-        label = self.labels[idx]
         file_path = self.file_paths[idx]
-
+        target = load_bbox_file(file_path)
         # Read an image with OpenCV
         image = cv2.imread(file_path)
 
@@ -42,12 +39,23 @@ class AlbumentationsDatasetCV2(Dataset):
         # so we need to convert the image to RGB color space.
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         if self.transform:
-            augmented = self.transform(image=image)
-            image = augmented["image"]
-        return image, label
+            augmented = self.transform(image=image, bboxes=target["boxes"], category_ids=target["labels"])
+            return augmented["image"], augmented["bboxes"], augmented["category_ids"]
+        
+        return image, target["boxes"], target["labels"]
 
 
 if __name__ == "__main__":
+    images = load_images(DATA_PATH, num_jpg=2, num_png=5)
+    # import matplotlib.pyplot as plt
+    # for img in images:
+    #     cv2_img = cv2.imread(img)
+    #     normal_image = cv2.cvtColor(cv2_img, cv2.COLOR_BGR2RGB)
+    #     plt.imshow(normal_image)
+    #     plt.show()
+    #     # cv2.imshow("Some Image", cv2_img)
+
+
     start_cv2 = time()
     albumentations_transform = a.Compose(
         [
@@ -58,17 +66,17 @@ if __name__ == "__main__":
                 std=[0.229, 0.224, 0.225],
             ),
             ToTensorV2(),
-        ]
+        ],
+        bbox_params=a.BboxParams(format='yolo', label_fields=['category_ids'])
     )
 
     albumentations_dataset = AlbumentationsDatasetCV2(
-        file_paths=glob(DATA_PATH + "*.jpg")[:50],
-        labels=range(len(glob(DATA_PATH + "*.jpg")[:50])),
+        file_paths=load_images(DATA_PATH),
         transform=albumentations_transform,
     )
 
-    for x, y in albumentations_dataset:
-        print(type(x), x.dtype, type(y))
+    for x, boxes, cid in albumentations_dataset:
+        print(type(x), x.dtype, len(boxes), len(cid))
 
     end_cv2 = time()
     print(f"Time taken with CV2 images: {end_cv2 - start_cv2}")

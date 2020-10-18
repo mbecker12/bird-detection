@@ -21,6 +21,7 @@ import albumentations as a
 from albumentations.pytorch import ToTensorV2
 from time import time
 
+DATA_PATH = "./data/"
 
 class AlbumentationsDatasetPil(Dataset):
     """__init__ and __len__ functions are the same as in TorchvisionDataset"""
