@@ -42,7 +42,7 @@ def test_forward_train():
     """
 
     model, faster_rcnn_model = define_model()
-    data_loader = setup_dataloader("train", batch_size=16, num_workers=0, shuffle=False)
+    data_loader = setup_dataloader("train", batch_size=4, num_workers=0, shuffle=False)
     print()
     # for training
     images, bboxes, cids = next(iter(data_loader))

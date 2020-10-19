@@ -61,12 +61,14 @@ def test_data_loader(mode, batch_size):
             assert img.shape[2] >= MIN_HEIGHT
             assert img.shape[3] >= MIN_WIDTH
             assert len(boxes) >= 0
+            assert img.dtype == torch.float32
 
             for im in img:
                 assert -2 <= im.min() <= 0
                 assert 0 <= im.max() <= 2
 
             for j, boxs in enumerate(boxes):
+                assert boxs.dtype == torch.float32
                 assert len(boxs) == len(cids[j])
                 for box in boxs:
 
@@ -77,6 +79,7 @@ def test_data_loader(mode, batch_size):
                     assert 0 <= box[3] <= 1
 
                 for idx in cids[j]:
+                    assert idx.dtype == torch.int64 or idx.dtype == torch.int32
                     assert idx <= NUM_CLASSES
 
             assert len(cids) == len(boxes)

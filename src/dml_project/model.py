@@ -78,7 +78,7 @@ def custom_collate_fn(loaded_data):
         for i in range(batch_size)
     ]
     boxes = [
-        torch.as_tensor(loaded_data[i][1], dtype=torch.float32)
+        torch.as_tensor(loaded_data[i][1], dtype=torch.float32).reshape(-1, 4)
         for i in range(batch_size)
     ]
     classes = [
