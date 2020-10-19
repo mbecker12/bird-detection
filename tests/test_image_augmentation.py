@@ -87,7 +87,7 @@ def test_augmentation_pipeline_with_bbox():
         transform=albumentations_transform,
     )
 
-    print()
+
     for i, (img, boxes, class_idx) in enumerate(dataset):
         assert -2 <= img.min() <= 0
         assert 0 <= img.max() <= 2
@@ -99,10 +99,13 @@ def test_augmentation_pipeline_with_bbox():
             assert 0 <= box[3] <= 1 
         # print(f"{boxes=}")
         target = load_bbox_file(image_paths[i])
+
+        box_file_path = image_paths[i].split(".")[-2] + ".txt"
+
         # gt_boxes = target["boxes"]
         # print(f"{gt_boxes=}")
         plot_img_and_boxes(image_paths[i])
         plot_img_and_boxes(None, img, boxes)
-        plt.show()
+        # plt.show()
 
         

@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from glob import glob
 import numpy as np
+import torch
 
 def show_img(img_path: str):
     cv2_img = cv2.imread(img_path)
@@ -43,12 +44,16 @@ def load_bbox_file(img_path):
             for line in bbox_file.readlines():
                 cls_idx, x, y, width, height = line.split(" ")
                 boxes.append([float(x), float(y), float(width), float(height)])
-                cls_indices.append(int(cls_idx))
-    else:
-        target["boxes"] = []
-        target["labels"] = []
-        return target
+                cls_indices.append([int(cls_idx)])
 
+        # print(f"{boxes=}")
+        
+    else:
+        boxes = []
+        cls_indices = []
+
+    boxes = torch.as_tensor(boxes, dtype=torch.float32)
+    cls_indices = torch.as_tensor(cls_indices, dtype=torch.float32)
     target["boxes"] = boxes
     target["labels"] = cls_indices
 
@@ -130,3 +135,6 @@ if __name__ == "__main__":
                 ax.add_patch(rect)    
 
             show_img(img)
+
+    # plot_img_and_boxes(path_to_image)
+    # plot_img_and_boxes(None, cv2_image_array, list_of_boxes)
