@@ -22,7 +22,9 @@ Needed to downgrade torch to 1.5 (and torchvision to 0.6 for compatibility) for 
 The environment can be set up with e.g.
 
   virtualenv -p /usr/bin/python3.8 ~/virtualenv/dmlproj
+  
   source ${HOME}/virtualenv/dmlproj/bin/activate
+  
   pip install -r requirements.txt
   
 For additional test support, when in the environment, execute
