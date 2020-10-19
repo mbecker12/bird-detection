@@ -21,18 +21,19 @@ from dml_project.model import setup_dataloader
 
 img_width = 512
 img_height = 512
-    
+
+
 @pytest.mark.parametrize(
-        "mode,batch_size", 
-        [
-            ("train", 1),
-            ("train", 8),
-            # ("train", 16),
-            ("val", 1),
-            ("val", 8),
-            # ("val", 16),
-        ]
-    )
+    "mode,batch_size",
+    [
+        ("train", 1),
+        ("train", 8),
+        ("train", 16),
+        ("val", 1),
+        ("val", 8),
+        ("val", 16),
+    ],
+)
 def test_data_loader(mode, batch_size):
     """
     Test a data loader with the corresponding augmentation pipeline for the training set.
@@ -41,61 +42,44 @@ def test_data_loader(mode, batch_size):
     """
     image_paths = load_images(DATA_PATH, num_jpg=20, num_png=3)
 
-    # dataset = AlbumentationsDatasetCV2(
-    #     file_paths=image_paths,
-    #     transform=albumentations_transform(mode),
-    # )
-
-    # data_loader = DataLoader(
-    #     dataset=dataset,
-    #     batch_size=batch_size,
-    #     num_workers=0,
-    #     shuffle=False
-    # )
-
-    data_loader = setup_dataloader(mode=mode, batch_size=batch_size, num_workers=0, shuffle=True)
-
+    data_loader = setup_dataloader(
+        mode=mode, batch_size=batch_size, num_workers=0, shuffle=True
+    )
 
     iteration = 0
-    for next_iter in data_loader:
-        for item in next_iter:
-            print(f"{len(item)=}")
-        if iteration > 0:
-            break
-        iteration += 1
-        # print(f"{next_iter=}")
-        # print(f"{type(next_iter)=}")
-        # print(f"{len(next_iter)=}")
+    try:
+        for img, boxes, cids in data_loader:
 
-    iteration = 0
-    for img, boxes, cids in data_loader:
+            plot_img_and_boxes(None, img[0], boxes[0])
 
-        plot_img_and_boxes(None, img[0], boxes)
-        plt.show()
-        print(f"{img.shape=}")
-        # print(f"{boxes=}")
-        print(f"{len(boxes)=}")
-        assert len(boxes) == img.shape[0]
-        if iteration > 0:
-            break
-        iteration += 1
-        assert img.shape[0] == batch_size, img.shape
-        assert img.shape[1] <= 4
-        assert img.shape[2] >= MIN_HEIGHT
-        assert img.shape[3] >= MIN_WIDTH
-        assert len(boxes) >= 0
+            assert len(boxes) == img.shape[0]
+            if iteration > 0:
+                break
+            iteration += 1
+            assert img.shape[0] == batch_size, img.shape
+            assert img.shape[1] <= 4
+            assert img.shape[2] >= MIN_HEIGHT
+            assert img.shape[3] >= MIN_WIDTH
+            assert len(boxes) >= 0
 
-        for im in img:
-            assert -2 <= im.min() <= 0
-            assert 0 <= im.max() <= 2
+            for im in img:
+                assert -2 <= im.min() <= 0
+                assert 0 <= im.max() <= 2
 
-        for j, box in enumerate(boxes):
-            box = [b.item() for b in box]
-            assert len(box) == 4
-            assert cids[j].item() <= 6 # N_CLASSES
-            assert 0 <= box[0] <= 1 
-            assert 0 <= box[1] <= 1 
-            assert 0 <= box[2] <= 1 
-            assert 0 <= box[3] <= 1 
+            for j, boxs in enumerate(boxes):
+                assert len(boxs) == len(cids[j])
+                for box in boxs:
 
-        assert len(cids) == len(boxes)
+                    assert len(box) == 4
+                    assert 0 <= box[0] <= 1
+                    assert 0 <= box[1] <= 1
+                    assert 0 <= box[2] <= 1
+                    assert 0 <= box[3] <= 1
+
+                for idx in cids[j]:
+                    assert idx <= NUM_CLASSES
+
+            assert len(cids) == len(boxes)
+    except ValueError as val_err:
+        print(val_err)
+        print(data_loader.__dict__)

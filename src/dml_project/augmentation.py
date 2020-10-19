@@ -19,40 +19,46 @@ from time import time
 from dml_project.util import load_images, load_bbox_file
 from dml_project.const import *
 
+
 def albumentations_transform(mode):
-    if mode == 'train':
+    if mode == "train":
         augmentation = a.Compose(
-                [
-                    at.ShiftScaleRotate(
-                        shift_limit=0.1, scale_limit=(-0.1, 0.5), 
-                        rotate_limit=15, p=0.5),
-                    a.Resize(MIN_HEIGHT, MIN_WIDTH),
-                    at.ColorJitter(brightness=0.1, contrast=0.07, saturation=0.07, hue=0.07, p=0.5),
-                    at.GaussNoise(var_limit=0.1, p=0.5),
-                    a.Normalize(
-                        mean=[0.5, 0.5, 0.5],
-                        std=[0.5, 0.5, 0.5],
-                    ),
-                    ToTensorV2(),
-                ],
-                bbox_params=a.BboxParams(format='yolo', label_fields=['category_ids'])
-            )
-    elif mode == 'val':
+            [
+                at.ShiftScaleRotate(
+                    shift_limit=0.1, scale_limit=(-0.1, 0.5), rotate_limit=15, p=0.5
+                ),
+                a.Resize(MIN_HEIGHT, MIN_WIDTH),
+                at.ColorJitter(
+                    brightness=0.1, contrast=0.07, saturation=0.07, hue=0.07, p=0.5
+                ),
+                at.GaussNoise(var_limit=0.1, p=0.5),
+                a.Normalize(
+                    mean=[0.5, 0.5, 0.5],
+                    std=[0.5, 0.5, 0.5],
+                ),
+                ToTensorV2(),
+            ],
+            bbox_params=a.BboxParams(format="yolo", label_fields=["category_ids"]),
+        )
+    elif mode == "val":
         augmentation = a.Compose(
-                [
-                    a.Resize(MIN_HEIGHT, MIN_WIDTH),
-                    a.Normalize(
-                        mean=[0.5, 0.5, 0.5],
-                        std=[0.5, 0.5, 0.5],
-                    ),
-                    ToTensorV2(),
-                ],
-                bbox_params=a.BboxParams(format='yolo', label_fields=['category_ids'])
-            )
+            [
+                a.Resize(MIN_HEIGHT, MIN_WIDTH),
+                a.Normalize(
+                    mean=[0.5, 0.5, 0.5],
+                    std=[0.5, 0.5, 0.5],
+                ),
+                ToTensorV2(),
+            ],
+            bbox_params=a.BboxParams(format="yolo", label_fields=["category_ids"]),
+        )
     else:
-        raise Exception(f"Error! Mode {mode} not supported for choosing an augmentation pipeline. Must be either 'train' or 'val'.")
+        raise Exception(
+            f"Error! Mode {mode} not supported for choosing an augmentation pipeline. Must be either 'train' or 'val'."
+        )
 
     return augmentation
+
 
 class AlbumentationsDatasetCV2(Dataset):
     """__init__ and __len__ functions are the same as in TorchvisionDataset"""
@@ -66,22 +72,22 @@ class AlbumentationsDatasetCV2(Dataset):
         return len(self.file_paths)
 
     def __getitem__(self, idx):
-        print(f"{idx=}")
         file_path = self.file_paths[idx]
         target = load_bbox_file(file_path)
         # Read an image with OpenCV
         image = cv2.imread(file_path)
-        print(f"{image.shape=}")
 
         # By default OpenCV uses BGR color space for color images,
         # so we need to convert the image to RGB color space.
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         if self.transform:
-            augmented = self.transform(image=image, bboxes=target["boxes"], category_ids=target["labels"])
+            augmented = self.transform(
+                image=image, bboxes=target["boxes"], category_ids=target["labels"]
+            )
             # augmented, target = self.transform(image=image, target=target)
             # return augmented, target["boxes"], target["category_ids"]
             return augmented["image"], augmented["bboxes"], augmented["category_ids"]
-        
+
         return image, target["boxes"], target["labels"]
 
 
@@ -95,7 +101,6 @@ if __name__ == "__main__":
     #     plt.show()
     #     # cv2.imshow("Some Image", cv2_img)
 
-
     start_cv2 = time()
     albumentations_transform = a.Compose(
         [
@@ -107,7 +112,7 @@ if __name__ == "__main__":
             ),
             ToTensorV2(),
         ],
-        bbox_params=a.BboxParams(format='yolo', label_fields=['category_ids'])
+        bbox_params=a.BboxParams(format="yolo", label_fields=["category_ids"]),
     )
 
     albumentations_dataset = AlbumentationsDatasetCV2(

@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
+
 def test_load_full_image():
     """
     Load a few full images and make sure they are all of the same datatype.
@@ -25,7 +26,7 @@ def test_load_full_image():
     loaded_dtype = None
     for i, img in enumerate(images):
         cv2_img = cv2.imread(img)
-        
+
         if i < 1:
             loaded_dtype = cv2_img.dtype
 
@@ -38,14 +39,13 @@ def test_load_full_image():
         assert cv2_shape[1] > MIN_WIDTH
         assert cv2_shape[2] == NUM_CHANNELS
 
-    
 
 def test_load_image_and_bbox():
     """
     Load image and bounding box and assure that bbox location corresponds to the correct loaction.
     """
     images = load_images(DATA_PATH, num_jpg=5, num_png=5)
-    
+
     for img in images:
         cv2_img = cv2.imread(img)
         target = load_bbox_file(img)
@@ -53,7 +53,6 @@ def test_load_image_and_bbox():
         labels = target["labels"]
 
         cv2_shape = cv2_img.shape
-
 
         for j, box in enumerate(bboxes):
             assert labels[j] < NUM_CLASSES
@@ -81,7 +80,7 @@ def test_resize_image():
     Load an image and resize it to the desired size.
     Make sure that the datatype does not change unexpectedly.
     """
-    
+
     image_paths = load_images(DATA_PATH, num_jpg=3, num_png=3)
 
     albumentations_transform = a.Compose(
@@ -89,7 +88,7 @@ def test_resize_image():
             a.Resize(512, 512),
             ToTensorV2(),
         ],
-        bbox_params=a.BboxParams(format='yolo', label_fields=['category_ids'])
+        bbox_params=a.BboxParams(format="yolo", label_fields=["category_ids"]),
     )
 
     dataset = AlbumentationsDatasetCV2(
@@ -100,8 +99,8 @@ def test_resize_image():
     for i, img in enumerate(image_paths):
 
         dat_img, boxes, cid = dataset[i]
-        
-        _dat_img = dat_img.permute(1,2,0)
+
+        _dat_img = dat_img.permute(1, 2, 0)
 
         cv2_img = cv2.imread(img)
         target = load_bbox_file(img)
@@ -151,7 +150,6 @@ def test_resize_image():
             assert dat_y - 0.5 * dat_height >= 0
 
 
-
 def test_normalization():
     """
     Make sure that we find a suitable set of normalization parameters across all images, for all channels
@@ -168,7 +166,7 @@ def test_normalization():
             ),
             ToTensorV2(),
         ],
-        bbox_params=a.BboxParams(format='yolo', label_fields=['category_ids'])
+        bbox_params=a.BboxParams(format="yolo", label_fields=["category_ids"]),
     )
 
     dataset = AlbumentationsDatasetCV2(
@@ -201,7 +199,7 @@ def test_resize_and_normalize_with_bbox():
             ),
             ToTensorV2(),
         ],
-        bbox_params=a.BboxParams(format='yolo', label_fields=['category_ids'])
+        bbox_params=a.BboxParams(format="yolo", label_fields=["category_ids"]),
     )
 
     dataset = AlbumentationsDatasetCV2(
@@ -221,24 +219,22 @@ def test_resize_and_normalize_with_bbox():
         assert img_shape[1] == resize_height
         assert img_shape[2] == resize_width
 
+
 def test_dataset_wo_transform():
     image_paths = load_images(DATA_PATH, num_jpg=3, num_png=3)
 
-    dataset = AlbumentationsDatasetCV2(
-        file_paths=image_paths
-    )
+    dataset = AlbumentationsDatasetCV2(file_paths=image_paths)
 
     for img, boxes, labels in dataset:
         assert boxes is not None
         assert labels is not None
         assert len(img.shape) == 3
 
+
 def test_load_all_images():
     image_paths = load_images("data")
 
-    dataset = AlbumentationsDatasetCV2(
-        file_paths=image_paths
-    )
+    dataset = AlbumentationsDatasetCV2(file_paths=image_paths)
 
     for i, (img, boxes, labels) in enumerate(dataset):
         if i > 10:
@@ -251,9 +247,7 @@ def test_load_all_images():
     # load example image without txt file
     image_paths = glob("data/universeum*")
 
-    dataset = AlbumentationsDatasetCV2(
-        file_paths=image_paths
-    )
+    dataset = AlbumentationsDatasetCV2(file_paths=image_paths)
 
     for i, (img, boxes, labels) in enumerate(dataset):
         if i > 10:

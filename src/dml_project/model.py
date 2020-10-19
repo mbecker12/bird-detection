@@ -16,6 +16,7 @@ from dml_project.util import *
 from torch.utils.data import DataLoader
 import torch
 
+
 def define_model():
     # load a model pre-trained pre-trained on COCO
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
@@ -40,8 +41,12 @@ def define_model():
     # ratios. We have a Tuple[Tuple[int]] because each feature
     # map could potentially have different sizes and
     # aspect ratios
-    anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),),
-                                    aspect_ratios=((0.5, 1.0, 2.0),))
+
+    # deleted another entry with size 512, taken from the example
+    # didn't seem to match with our used image sizes
+    anchor_generator = AnchorGenerator(
+        sizes=((32, 64, 128, 256),), aspect_ratios=((0.5, 1.0, 2.0),)
+    )
 
     # let's define what are the feature maps that we will
     # use to perform the region of interest cropping, as well as
@@ -50,38 +55,63 @@ def define_model():
     # be [0]. More generally, the backbone should return an
     # OrderedDict[Tensor], and in featmap_names you can choose which
     # feature maps to use.
-    roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=[0],
-                                                    output_size=7,
-                                                    sampling_ratio=2)
+    roi_pooler = torchvision.ops.MultiScaleRoIAlign(
+        featmap_names=[0], output_size=7, sampling_ratio=2
+    )
 
     # put the pieces together inside a FasterRCNN model
-    faster_rcnn_model = FasterRCNN(backbone,
-                    num_classes=NUM_CLASSES + 1,
-                    rpn_anchor_generator=anchor_generator,
-                    box_roi_pool=roi_pooler)
+    faster_rcnn_model = FasterRCNN(
+        backbone,
+        num_classes=NUM_CLASSES + 1,
+        rpn_anchor_generator=anchor_generator,
+        box_roi_pool=roi_pooler,
+    )
 
     return model, faster_rcnn_model
 
-def custom_collate_fn(x):
-    assert len(x) == 3
-    return (
-        torch.as_tensor(x[0], dtype=torch.float32),
-        torch.as_tensor(x[1], dtype=torch.float32),
-        torch.as_tensor(x[2], dtype=torch.int64)
-    )
+
+def custom_collate_fn(loaded_data):
+    batch_size = len(loaded_data)
+
+    imgs = [
+        torch.as_tensor(loaded_data[i][0], dtype=torch.float32)
+        for i in range(batch_size)
+    ]
+    boxes = [
+        torch.as_tensor(loaded_data[i][1], dtype=torch.float32)
+        for i in range(batch_size)
+    ]
+    classes = [
+        torch.as_tensor(loaded_data[i][2]).to(dtype=torch.int64)
+        for i in range(batch_size)
+    ]
+
+    assert len(boxes) == len(classes)
+
+    assert len(boxes)
+
+    img_batch_tensor = torch.stack(imgs, dim=0).to(dtype=torch.float32)
+
+    assert (
+        img_batch_tensor.shape[0] == batch_size
+    ), f"{img_batch_tensor.shape[0]=}, {batch_size=}"
+    assert (
+        img_batch_tensor.shape[1] == NUM_CHANNELS
+    ), f"{img_batch_tensor.shape[1]=}, {NUM_CHANNELS=}"
+    return (img_batch_tensor, boxes, classes)
+
 
 def setup_dataloader(mode, batch_size=16, num_workers=0, shuffle=True):
     dataset = AlbumentationsDatasetCV2(
-        file_paths=load_images(DATA_PATH),
-        transform=albumentations_transform(mode)
+        file_paths=load_images(DATA_PATH), transform=albumentations_transform(mode)
     )
 
     data_loader = DataLoader(
-        dataset=dataset, 
-        batch_size=batch_size, 
-        num_workers=num_workers, 
+        dataset=dataset,
+        batch_size=batch_size,
+        num_workers=num_workers,
         shuffle=shuffle,
-        collate_fn=custom_collate_fn
+        collate_fn=custom_collate_fn,
     )
 
     return data_loader
