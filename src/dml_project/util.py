@@ -35,7 +35,7 @@ def load_images(path: str, num_jpg: int = -1, num_png: int = -1) -> List:
     return images
 
 
-def load_bbox_file(img_path):
+def load_bbox_file(img_path, img_shape=None):
     bbox_path = img_path.split(".")[-2]
     bbox_path += ".txt"
 

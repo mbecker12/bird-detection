@@ -17,15 +17,19 @@ from torch.utils.data import DataLoader
 import torch
 
 
-def define_model():
+def define_model(resnet=False):
+    model = None
     # load a model pre-trained pre-trained on COCO
-    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+    if resnet:
+        model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
 
     # get number of input features for the classifier
-    in_features = model.roi_heads.box_predictor.cls_score.in_features
+    if resnet:
+        in_features = model.roi_heads.box_predictor.cls_score.in_features
 
     # replace the pre-trained head with a new one
-    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, NUM_CLASSES)
+    if resnet:
+        model.roi_heads.box_predictor = FastRCNNPredictor(in_features, NUM_CLASSES)
 
     # load a pre-trained model for classification and return
     # only the features
@@ -56,7 +60,9 @@ def define_model():
     # OrderedDict[Tensor], and in featmap_names you can choose which
     # feature maps to use.
     roi_pooler = torchvision.ops.MultiScaleRoIAlign(
-        featmap_names=[0], output_size=7, sampling_ratio=2
+        featmap_names=["0"],
+        output_size=7,
+        sampling_ratio=2,
     )
 
     # put the pieces together inside a FasterRCNN model
@@ -77,18 +83,19 @@ def custom_collate_fn(loaded_data):
         torch.as_tensor(loaded_data[i][0], dtype=torch.float32)
         for i in range(batch_size)
     ]
-    boxes = [
-        torch.as_tensor(loaded_data[i][1], dtype=torch.float32).reshape(-1, 4)
-        for i in range(batch_size)
-    ]
-    classes = [
-        torch.as_tensor(loaded_data[i][2]).to(dtype=torch.int64)
-        for i in range(batch_size)
-    ]
 
-    assert len(boxes) == len(classes)
-
-    assert len(boxes)
+    targets = []
+    for i in range(batch_size):
+        targets.append(
+            {
+                "boxes": torch.as_tensor(
+                    loaded_data[i][1]["boxes"], dtype=torch.float32
+                ).reshape(-1, 4),
+                "labels": torch.as_tensor(loaded_data[i][1]["labels"]).to(
+                    dtype=torch.int64
+                ),
+            }
+        )
 
     img_batch_tensor = torch.stack(imgs, dim=0).to(dtype=torch.float32)
 
@@ -98,7 +105,36 @@ def custom_collate_fn(loaded_data):
     assert (
         img_batch_tensor.shape[1] == NUM_CHANNELS
     ), f"{img_batch_tensor.shape[1]=}, {NUM_CHANNELS=}"
-    return (img_batch_tensor, boxes, classes)
+    return (img_batch_tensor, targets)
+
+
+def custom_collate_fn_mem_efficient(loaded_data):
+    batch_size = len(loaded_data)
+
+    # TODO maybe boxes need to be recomputed
+    # to fulfill 0 < x < W & 0 < y < H
+    targets = [
+        {
+            "boxes": torch.as_tensor(
+                loaded_data[i][1]["boxes"], dtype=torch.float32
+            ).reshape(-1, 4),
+            "labels": torch.as_tensor(loaded_data[i][1]["labels"]).to(
+                dtype=torch.int64
+            ),
+        }
+        for i in range(batch_size)
+    ]
+
+    return (
+        torch.stack(
+            [
+                torch.as_tensor(loaded_data[i][0], dtype=torch.float32)
+                for i in range(batch_size)
+            ],
+            dim=0,
+        ).to(dtype=torch.float32),
+        targets,
+    )
 
 
 def setup_dataloader(mode, batch_size=16, num_workers=0, shuffle=True):
@@ -111,7 +147,7 @@ def setup_dataloader(mode, batch_size=16, num_workers=0, shuffle=True):
         batch_size=batch_size,
         num_workers=num_workers,
         shuffle=shuffle,
-        collate_fn=custom_collate_fn,
+        collate_fn=custom_collate_fn_mem_efficient,
     )
 
     return data_loader

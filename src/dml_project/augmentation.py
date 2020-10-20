@@ -33,8 +33,8 @@ def albumentations_transform(mode):
                 ),
                 at.GaussNoise(var_limit=0.1, p=0.5),
                 a.Normalize(
-                    mean=[0.5, 0.5, 0.5],
-                    std=[0.5, 0.5, 0.5],
+                    mean=[0.485, 0.456, 0.406],
+                    std=[0.229, 0.224, 0.225],
                 ),
                 ToTensorV2(),
             ],
@@ -45,8 +45,8 @@ def albumentations_transform(mode):
             [
                 a.Resize(MIN_HEIGHT, MIN_WIDTH),
                 a.Normalize(
-                    mean=[0.5, 0.5, 0.5],
-                    std=[0.5, 0.5, 0.5],
+                    mean=[0.485, 0.456, 0.406],
+                    std=[0.229, 0.224, 0.225],
                 ),
                 ToTensorV2(),
             ],
@@ -86,7 +86,15 @@ class AlbumentationsDatasetCV2(Dataset):
             )
             # augmented, target = self.transform(image=image, target=target)
             # return augmented, target["boxes"], target["category_ids"]
-            return augmented["image"], augmented["bboxes"], augmented["category_ids"]
+            targets = {
+                "boxes": augmented["bboxes"],
+                "labels": augmented["category_ids"],
+            }
+            # print(f"{targets=}")
+            # targets = [{"boxes": augmented["bboxes"][i], "labels": augmented["category_ids"][i]} for i in range(n_samples)]
+
+            # return augmented["image"], augmented["bboxes"], augmented["category_ids"]
+            return augmented["image"], targets
 
         return image, target["boxes"], target["labels"]
 
