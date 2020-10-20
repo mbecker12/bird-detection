@@ -41,8 +41,8 @@ def test_show_image_and_boxes():
 
     for i, img in enumerate(image_paths):
 
-        dat_img, boxes, cid = dataset[i]
-
+        dat_img, targets = dataset[i]
+        boxes = targets["boxes"]
         _dat_img = dat_img.permute(1, 2, 0)
 
         plot_img_and_boxes(img)

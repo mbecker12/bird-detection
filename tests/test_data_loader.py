@@ -76,10 +76,19 @@ def test_data_loader(mode, batch_size):
                 for box in boxs:
 
                     assert len(box) == 4
-                    assert 0 <= box[0] <= 1
-                    assert 0 <= box[1] <= 1
-                    assert 0 <= box[2] <= 1
-                    assert 0 <= box[3] <= 1
+                    # if boxes are recomputed for rcnn
+                    if box[0] > 1 or box[1] > 1 or box[2] > 1 or box[3] > 1:
+                        assert box[0] < box[2]
+                        assert box[1] < box[3]
+                        assert 0 <= box[0] <= img.shape[3], box
+                        assert 0 <= box[1] <= img.shape[2], box
+                        assert 0 <= box[2] <= img.shape[3], box
+                        assert 0 <= box[3] <= img.shape[2], box
+                    else:
+                        assert 0 <= box[0] <= 1, box
+                        assert 0 <= box[1] <= 1, box
+                        assert 0 <= box[2] <= 1, box
+                        assert 0 <= box[3] <= 1, box
 
                 for idx in cids[j]:
                     assert idx.dtype == torch.int64 or idx.dtype == torch.int32

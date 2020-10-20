@@ -98,7 +98,10 @@ def test_resize_image():
 
     for i, img in enumerate(image_paths):
 
-        dat_img, boxes, cid = dataset[i]
+        dat_img, targets = dataset[i]
+
+        boxes = targets["boxes"]
+        cid = targets["labels"]
 
         _dat_img = dat_img.permute(1, 2, 0)
 
@@ -174,7 +177,7 @@ def test_normalization():
         transform=albumentations_transform,
     )
 
-    for img, boxes, labels in dataset:
+    for img, targets in dataset:
         assert img.dtype in (np.float32, float, torch.float, torch.float32)
         assert -3 < img.min() < 0
         assert 0 < img.max() < 3
@@ -209,7 +212,7 @@ def test_resize_and_normalize_with_bbox():
 
     assert len(dataset) <= 6
 
-    for img, boxes, labels in dataset:
+    for img, targets in dataset:
         assert img.dtype in (np.float32, float, torch.float, torch.float32)
         assert -3 < img.min() < 0
         assert 0 < img.max() < 3
