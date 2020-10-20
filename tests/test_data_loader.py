@@ -40,16 +40,19 @@ def test_data_loader(mode, batch_size):
     i.e. the example images and bounding boxes will go through a series of augmentations.
     Make sure that it will return the correct batch size and data format, as well as pixel range.
     """
-    image_paths = load_images(DATA_PATH, num_jpg=20, num_png=3)
+    image_paths = load_images(DATA_PATH)  # , num_jpg=20, num_png=3)
 
     data_loader = setup_dataloader(
         mode=mode, batch_size=batch_size, num_workers=0, shuffle=True
     )
 
+    images, targets = next(iter(data_loader))
+
     iteration = 0
     try:
-        for img, boxes, cids in data_loader:
-
+        for img, targets in data_loader:
+            boxes = [targets[i]["boxes"] for i in range(img.shape[0])]
+            cids = [targets[i]["labels"] for i in range(img.shape[0])]
             plot_img_and_boxes(None, img[0], boxes[0])
 
             assert len(boxes) == img.shape[0]
@@ -64,8 +67,8 @@ def test_data_loader(mode, batch_size):
             assert img.dtype == torch.float32
 
             for im in img:
-                assert -2 <= im.min() <= 0
-                assert 0 <= im.max() <= 2
+                assert -3 <= im.min() <= 0
+                assert 0 <= im.max() <= 3
 
             for j, boxs in enumerate(boxes):
                 assert boxs.dtype == torch.float32

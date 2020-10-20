@@ -21,17 +21,43 @@ import numpy as np
 import torch
 import torchvision
 from torch.utils.data import DataLoader
+import sys
+
+from types import ModuleType, FunctionType
+from gc import get_referents
+
+# Custom objects know their class.
+# Function objects seem to know way too much, including modules.
+# Exclude modules as well.
+BLACKLIST = type, ModuleType, FunctionType
+
+
+def getsize(obj):
+    """sum size of object & members."""
+    if isinstance(obj, BLACKLIST):
+        raise TypeError("getsize() does not take argument of type: " + str(type(obj)))
+    seen_ids = set()
+    size = 0
+    objects = [obj]
+    while objects:
+        need_referents = []
+        for obj in objects:
+            if not isinstance(obj, BLACKLIST) and id(obj) not in seen_ids:
+                seen_ids.add(id(obj))
+                size += sys.getsizeof(obj)
+                need_referents.append(obj)
+        objects = get_referents(*need_referents)
+    return size
 
 
 def test_forward_eval():
     # for inference
-    model, faster_rcnn_model = define_model()
-    model.eval()
+    _, faster_rcnn_model = define_model()
+    faster_rcnn_model.eval()
 
     x = [torch.rand(3, 1000, 1000), torch.rand(3, 1200, 900)]
 
-    predictions = model(x)
-    print(predictions)
+    predictions = faster_rcnn_model(x)
 
 
 def test_forward_train():
@@ -41,30 +67,13 @@ def test_forward_train():
     and that all shapes and datatypes fit so that the model can give a sensible output.
     """
 
-    model, faster_rcnn_model = define_model()
+    _, faster_rcnn_model = define_model()
     data_loader = setup_dataloader("train", batch_size=4, num_workers=0, shuffle=False)
-    print()
     # for training
-    images, bboxes, cids = next(iter(data_loader))
-    # print(images, bboxes, cids)
-    print(f"{len(images)=}")
-    # images, bboxes, cids = next(data_loader)
-    # for images, bboxes, cids in data_loader:
-    # print(images, bboxes, cids)
-    images = list(image for image in images)
+    images, targets = next(iter(data_loader))
+
+    # images = list(image for image in images)
     n_samples = len(images)
 
-    # bboxes_ = []
-    # for box in bboxes:
-    #     box_ = [b.item() for b in box]
-    #     bboxes_.append(box_)
-
-    # print()
-    # print(f"{bboxes=}")
-    # print(f"{bboxes_=}")
-    # print(f"{cids=}")
-
-    targets = [{"boxes": bboxes[i], "labels": cids[i]} for i in range(n_samples)]
-
-    output = model(images, targets)
-    print(output)
+    # targets = [{"boxes": bboxes[i], "labels": cids[i]} for i in range(n_samples)]
+    output = faster_rcnn_model(images, targets)

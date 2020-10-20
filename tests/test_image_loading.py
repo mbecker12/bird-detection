@@ -236,6 +236,8 @@ def test_load_all_images():
 
     dataset = AlbumentationsDatasetCV2(file_paths=image_paths)
 
+    assert len(dataset) > 0
+
     for i, (img, boxes, labels) in enumerate(dataset):
         if i > 10:
             break
