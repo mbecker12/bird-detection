@@ -22,4 +22,6 @@ black
 pylint
 git+https://github.com/albumentations-team/albumentations
 opencv-python
+cython
+pycocotools
 matplotlib
