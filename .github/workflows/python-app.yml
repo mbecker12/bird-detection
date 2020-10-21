@@ -27,15 +27,16 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         if [ -f test-requirements.txt ]; then pip install -r test-requirements.txt; fi
         python setup.py develop
-    - name: Test with pytest
-      run: |
-        git submodule init
-        git submodule update --init --recursive
-        git submodule update --remote
-        pytest tests
     - name: Lint
       continue-on-error: true
       run: |
         pip install pylint
         if [ -f .pylintrc.txt ]; then pylint src/dml_project --rcfile .pylintrc; else pylint src/dml_project; fi
         if [ -f tests/.pylintrc.txt ]; then pylint tests --rcfile tests/.pylintrc; else pylint tests; fi
+    - name: Test with pytest
+      run: |
+        git submodule init
+        git submodule update --init --recursive
+        git submodule update --remote
+        pytest tests
+
