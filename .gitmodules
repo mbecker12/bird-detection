@@ -1,0 +1,4 @@
+[submodule "src/vision"]
+	path = src/vision
+	url = https://github.com/pytorch/vision
+	branch = master
