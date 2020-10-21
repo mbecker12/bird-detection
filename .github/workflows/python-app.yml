@@ -31,7 +31,7 @@ jobs:
       run: |
         pytest tests
     - name: Lint
-    run: |
-      pip install pylint
-      if [ -f .pylintrc.txt ]; then pylint src/dml_project --rcfile .pylintrc; else pylint src/dml_project; fi
-      if [ -f tests/.pylintrc.txt ]; then pylint tests --rcfile tests/.pylintrc; else pylint tests; fi
+      run: |
+        pip install pylint
+        if [ -f .pylintrc.txt ]; then pylint src/dml_project --rcfile .pylintrc; else pylint src/dml_project; fi
+        if [ -f tests/.pylintrc.txt ]; then pylint tests --rcfile tests/.pylintrc; else pylint tests; fi
