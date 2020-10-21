@@ -34,6 +34,7 @@ jobs:
         git submodule update --remote
         pytest tests
     - name: Lint
+      continue-on-error: true
       run: |
         pip install pylint
         if [ -f .pylintrc.txt ]; then pylint src/dml_project --rcfile .pylintrc; else pylint src/dml_project; fi
