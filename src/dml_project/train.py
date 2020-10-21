@@ -14,9 +14,8 @@ from torch.optim import Adam
 import sys
 import os
 
-# print(f"{os.getcwd()=}")
+sys.path.append(os.getcwd() + "/src/vision")
 sys.path.append(os.getcwd() + "/src/vision/references/detection")
-# print(f"{sys.path=}")
 from vision.references.detection.engine import train_one_epoch, evaluate
 
 

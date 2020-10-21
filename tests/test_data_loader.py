@@ -27,11 +27,11 @@ img_height = 512
     "mode,batch_size",
     [
         ("train", 1),
-        ("train", 8),
-        ("train", 16),
+        ("train", 4),
+        ("train", 6),
         ("val", 1),
-        ("val", 8),
-        ("val", 16),
+        ("val", 4),
+        ("val", 6),
     ],
 )
 def test_data_loader(mode, batch_size):

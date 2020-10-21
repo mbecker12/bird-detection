@@ -19,7 +19,6 @@ import sys
 sys.path.append(os.getcwd() + "/src/vision")
 sys.path.append(os.getcwd() + "/src/vision/references/detection")
 from types import ModuleType, FunctionType
-from gc import get_referents
 
 from vision.references.detection.engine import train_one_epoch, evaluate
 from torch.optim import Adam
