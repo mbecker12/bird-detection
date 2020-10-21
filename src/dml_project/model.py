@@ -86,11 +86,10 @@ def custom_collate_fn(loaded_data):
 
     targets = []
     for i in range(batch_size):
+        boxes = recompute_boxes(loaded_data[i][1]["boxes"], imgs[i].shape)
         targets.append(
             {
-                "boxes": torch.as_tensor(
-                    loaded_data[i][1]["boxes"], dtype=torch.float32
-                ).reshape(-1, 4),
+                "boxes": torch.as_tensor(boxes, dtype=torch.float32).reshape(-1, 4),
                 "labels": torch.as_tensor(loaded_data[i][1]["labels"]).to(
                     dtype=torch.int64
                 ),
@@ -111,19 +110,19 @@ def custom_collate_fn(loaded_data):
 def custom_collate_fn_mem_efficient(loaded_data):
     batch_size = len(loaded_data)
 
-    # TODO maybe boxes need to be recomputed
-    # to fulfill 0 < x < W & 0 < y < H
-    targets = [
-        {
-            "boxes": torch.as_tensor(
-                loaded_data[i][1]["boxes"], dtype=torch.float32
-            ).reshape(-1, 4),
-            "labels": torch.as_tensor(loaded_data[i][1]["labels"]).to(
-                dtype=torch.int64
-            ),
-        }
+    boxes = [
+        recompute_boxes(loaded_data[i][1]["boxes"], loaded_data[i][0].shape)
         for i in range(batch_size)
     ]
+
+    batch_areas = []
+    for i in range(batch_size):
+        areas = torch.ones_like(boxes[i])
+        for j, a in enumerate(areas):
+            areas[j] *= (boxes[i][j][1] - boxes[i][j][0]) * (
+                boxes[i][j][3] - boxes[i][j][2]
+            )
+        batch_areas.append(areas)
 
     return (
         torch.stack(
@@ -133,13 +132,27 @@ def custom_collate_fn_mem_efficient(loaded_data):
             ],
             dim=0,
         ).to(dtype=torch.float32),
-        targets,
+        [
+            {
+                "boxes": torch.as_tensor(boxes[i], dtype=torch.float32).reshape(-1, 4),
+                "labels": torch.as_tensor(loaded_data[i][1]["labels"]).to(
+                    dtype=torch.int64
+                ),
+                "image_id": torch.as_tensor(loaded_data[i][1]["image_id"]),
+                "iscrowd": torch.as_tensor(loaded_data[i][1]["iscrowd"]),
+                "area": torch.as_tensor(batch_areas[i]),  # this works
+            }
+            for i in range(batch_size)
+        ],
     )
 
 
-def setup_dataloader(mode, batch_size=16, num_workers=0, shuffle=True):
+def setup_dataloader(
+    mode, batch_size=16, num_workers=0, shuffle=True, num_jpg=-1, num_png=-1
+):
     dataset = AlbumentationsDatasetCV2(
-        file_paths=load_images(DATA_PATH), transform=albumentations_transform(mode)
+        file_paths=load_images(DATA_PATH, num_jpg=num_jpg, num_png=num_png),
+        transform=albumentations_transform(mode),
     )
 
     data_loader = DataLoader(

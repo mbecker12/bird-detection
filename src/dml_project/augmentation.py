@@ -25,11 +25,11 @@ def albumentations_transform(mode):
         augmentation = a.Compose(
             [
                 at.ShiftScaleRotate(
-                    shift_limit=0.1, scale_limit=(-0.1, 0.5), rotate_limit=15, p=0.5
+                    shift_limit=0.1, scale_limit=(-0.1, 0.25), rotate_limit=15, p=0.5
                 ),
                 a.Resize(MIN_HEIGHT, MIN_WIDTH),
                 at.ColorJitter(
-                    brightness=0.1, contrast=0.07, saturation=0.07, hue=0.07, p=0.5
+                    brightness=0.08, contrast=0.06, saturation=0.06, hue=0.07, p=0.5
                 ),
                 at.GaussNoise(var_limit=0.1, p=0.5),
                 a.Normalize(
@@ -50,7 +50,9 @@ def albumentations_transform(mode):
                 ),
                 ToTensorV2(),
             ],
-            bbox_params=a.BboxParams(format="yolo", label_fields=["category_ids"]),
+            bbox_params=a.BboxParams(
+                format="yolo", label_fields=["category_ids"], min_visibility=0.2
+            ),
         )
     else:
         raise Exception(
@@ -82,13 +84,21 @@ class AlbumentationsDatasetCV2(Dataset):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         if self.transform:
             augmented = self.transform(
-                image=image, bboxes=target["boxes"], category_ids=target["labels"]
+                image=image,
+                bboxes=target["boxes"],
+                category_ids=target["labels"],
+                image_id=target["image_id"],
+                iscrowd=target["iscrowd"],
+                area=target["area"],
             )
             # augmented, target = self.transform(image=image, target=target)
             # return augmented, target["boxes"], target["category_ids"]
             targets = {
                 "boxes": augmented["bboxes"],
                 "labels": augmented["category_ids"],
+                "image_id": augmented["image_id"],
+                "area": augmented["area"],
+                "iscrowd": augmented["iscrowd"],
             }
             # print(f"{targets=}")
             # targets = [{"boxes": augmented["bboxes"][i], "labels": augmented["category_ids"][i]} for i in range(n_samples)]
@@ -120,7 +130,10 @@ if __name__ == "__main__":
             ),
             ToTensorV2(),
         ],
-        bbox_params=a.BboxParams(format="yolo", label_fields=["category_ids"]),
+        bbox_params=a.BboxParams(
+            format="yolo",
+            label_fields=["category_ids"],
+        ),
     )
 
     albumentations_dataset = AlbumentationsDatasetCV2(

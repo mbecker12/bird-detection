@@ -93,8 +93,8 @@ def test_augmentation_pipeline_with_bbox():
     )
 
     for i, (img, targets) in enumerate(dataset):
-        
-        boxes = targets["boxes"] 
+
+        boxes = targets["boxes"]
         class_idx = targets["labels"]
         assert -2 <= img.min() <= 0
         assert 0 <= img.max() <= 2

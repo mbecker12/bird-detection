@@ -2,7 +2,7 @@
 A collection of utility functions
 """
 import os
-from typing import List
+from typing import List, Union, Tuple
 from cv2 import cv2
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -35,6 +35,47 @@ def load_images(path: str, num_jpg: int = -1, num_png: int = -1) -> List:
     return images
 
 
+def normalize_boxes(boxes: List[Tuple], img_shape: Union[Tuple, List]) -> List[Tuple]:
+    img_height = img_shape[1]
+    img_width = img_shape[2]
+
+    boxes_ = []
+    for i in range(len(boxes)):
+        x1, y1, x2, y2 = boxes[i]
+        width = x2 - x1
+        height = y2 - y1
+        x_mid = x1 + 0.5 * width
+        y_mid = y1 + 0.5 * height
+
+        box = [
+            x_mid / img_width,
+            y_mid / img_height,
+            width / img_width,
+            height / img_height,
+        ]
+        boxes_.append(box)
+    return boxes_
+
+
+def recompute_boxes(boxes: List[Tuple], img_shape: Union[Tuple, List]) -> List[Tuple]:
+    if img_shape is None:
+        img_width = 1
+        img_height = 1
+    else:
+        img_height = img_shape[1]
+        img_width = img_shape[2]
+
+    for i in range(len(boxes)):
+        x, y, width, height = boxes[i]
+        x1 = max((x - 0.5 * width) * img_width, 0)
+        y1 = max((y - 0.5 * height) * img_height, 0)
+        x2 = min((x + 0.5 * width) * img_width, img_width)
+        y2 = min((y + 0.5 * height) * img_height, img_height)
+        boxes[i] = (x1, y1, x2, y2)
+    # print(f"{boxes=}")
+    return torch.as_tensor(boxes).reshape(-1, 4)
+
+
 def load_bbox_file(img_path, img_shape=None):
     bbox_path = img_path.split(".")[-2]
     bbox_path += ".txt"
@@ -55,10 +96,14 @@ def load_bbox_file(img_path, img_shape=None):
         boxes = []
         cls_indices = []
 
-    boxes = torch.as_tensor(boxes, dtype=torch.float32)
+    boxes = torch.as_tensor(boxes, dtype=torch.float32).reshape(-1, 4)
     cls_indices = torch.as_tensor(cls_indices, dtype=torch.float32)
     target["boxes"] = boxes
     target["labels"] = cls_indices
+    # NOTE: keep hash as long as img_id is actually uninteresting for us
+    target["image_id"] = torch.as_tensor(hash(img_path.split(".")[-2].split("/")[-1]))
+    target["iscrowd"] = torch.as_tensor([0 for _ in cls_indices])
+    target["area"] = boxes[:, 2] * boxes[:, 3]
 
     return target
 
