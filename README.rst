@@ -30,7 +30,16 @@ The environment can be set up with e.g.
 For additional test support, when in the environment, execute
 
   pip install -r test-requirements.txt
+  
+To help linking modules within the project, execute
+  
+  python setup.py develop
+  
+[Also, note that since we included vision (from pytorch/torchvision) as a submodule, the code should be pulled via
 
+  git pull origin main --recurse-submodules
+
+... or similar.]
 
 This project has been set up using PyScaffold 3.2.3. For details and usage
 information on PyScaffold see https://pyscaffold.org/.
