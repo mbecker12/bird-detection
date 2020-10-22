@@ -71,8 +71,8 @@ def recompute_boxes(boxes: List[Tuple], img_shape: Union[Tuple, List]) -> List[T
         y1 = max((y - 0.5 * height) * img_height, 0)
         x2 = min((x + 0.5 * width) * img_width, img_width)
         y2 = min((y + 0.5 * height) * img_height, img_height)
-        boxes[i] = (x1, y1, x2, y2)
-    # print(f"{boxes=}")
+        boxes[i] = torch.as_tensor((x1, y1, x2, y2))
+
     return torch.as_tensor(boxes).reshape(-1, 4)
 
 
@@ -89,8 +89,6 @@ def load_bbox_file(img_path, img_shape=None):
                 cls_idx, x, y, width, height = line.split(" ")
                 boxes.append([float(x), float(y), float(width), float(height)])
                 cls_indices.append([int(cls_idx)])
-
-        # print(f"{boxes=}")
 
     else:
         boxes = []

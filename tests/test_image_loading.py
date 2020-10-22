@@ -228,7 +228,9 @@ def test_dataset_wo_transform():
 
     dataset = AlbumentationsDatasetCV2(file_paths=image_paths)
 
-    for img, boxes, labels in dataset:
+    for img, targets in dataset:
+        boxes = targets["boxes"]
+        labels = targets["labels"]
         assert boxes is not None
         assert labels is not None
         assert len(img.shape) == 3
@@ -241,10 +243,11 @@ def test_load_all_images():
 
     assert len(dataset) > 0
 
-    for i, (img, boxes, labels) in enumerate(dataset):
+    for i, (img, targets) in enumerate(dataset):
         if i > 10:
             break
-
+        boxes = targets["boxes"]
+        labels = targets["labels"]
         assert boxes is not None
         assert labels is not None
         assert len(img.shape) == 3
@@ -254,10 +257,11 @@ def test_load_all_images():
 
     dataset = AlbumentationsDatasetCV2(file_paths=image_paths)
 
-    for i, (img, boxes, labels) in enumerate(dataset):
+    for i, (img, targets) in enumerate(dataset):
         if i > 10:
             break
-
+        boxes = targets["boxes"]
+        labels = targets["labels"]
         assert boxes is not None
         assert labels is not None
         assert len(img.shape) == 3
