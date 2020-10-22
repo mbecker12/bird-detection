@@ -25,11 +25,13 @@ if __name__ == "__main__":
         train_dataloader = setup_dataloader(mode="train", batch_size=6, num_workers=4)
 
         optimizer = Adam(faster_rcnn_model.parameters(), lr=0.0001)
-        device = torch.device("cpu")
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print_freq = 10
         epoch = 0
 
-        for epoch in range(5):
+        faster_rcnn_model.to(device)
+  
+        for epoch in range(1):
             metric_logger = train_one_epoch(
                 faster_rcnn_model,
                 optimizer,
@@ -42,6 +44,7 @@ if __name__ == "__main__":
         print(metric_logger)
 
         torch.save(faster_rcnn_model.state_dict(), "second_model")
+        
     if sys.argv[1] == "val":
         _, faster_rcnn_model = define_model()
         faster_rcnn_model.load_state_dict(torch.load("second_model"))
