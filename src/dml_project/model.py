@@ -76,37 +76,6 @@ def define_model(resnet=False):
     return model, faster_rcnn_model
 
 
-def custom_collate_fn(loaded_data):
-    batch_size = len(loaded_data)
-
-    imgs = [
-        torch.as_tensor(loaded_data[i][0], dtype=torch.float32)
-        for i in range(batch_size)
-    ]
-
-    targets = []
-    for i in range(batch_size):
-        boxes = recompute_boxes(loaded_data[i][1]["boxes"], imgs[i].shape)
-        targets.append(
-            {
-                "boxes": torch.as_tensor(boxes, dtype=torch.float32).reshape(-1, 4),
-                "labels": torch.as_tensor(loaded_data[i][1]["labels"]).to(
-                    dtype=torch.int64
-                ),
-            }
-        )
-
-    img_batch_tensor = torch.stack(imgs, dim=0).to(dtype=torch.float32)
-
-    assert (
-        img_batch_tensor.shape[0] == batch_size
-    ), f"{img_batch_tensor.shape[0]=}, {batch_size=}"
-    assert (
-        img_batch_tensor.shape[1] == NUM_CHANNELS
-    ), f"{img_batch_tensor.shape[1]=}, {NUM_CHANNELS=}"
-    return (img_batch_tensor, targets)
-
-
 def custom_collate_fn_mem_efficient(loaded_data):
     batch_size = len(loaded_data)
 
@@ -140,7 +109,7 @@ def custom_collate_fn_mem_efficient(loaded_data):
                 ),
                 "image_id": torch.as_tensor(loaded_data[i][1]["image_id"]),
                 "iscrowd": torch.as_tensor(loaded_data[i][1]["iscrowd"]),
-                "area": torch.as_tensor(batch_areas[i]),  # this works
+                "area": torch.as_tensor(batch_areas[i]),
             }
             for i in range(batch_size)
         ],

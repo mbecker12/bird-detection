@@ -91,8 +91,7 @@ class AlbumentationsDatasetCV2(Dataset):
                 iscrowd=target["iscrowd"],
                 area=target["area"],
             )
-            # augmented, target = self.transform(image=image, target=target)
-            # return augmented, target["boxes"], target["category_ids"]
+
             targets = {
                 "boxes": torch.as_tensor(augmented["bboxes"]).reshape(-1, 4),
                 "labels": torch.as_tensor(augmented["category_ids"]),
@@ -100,7 +99,7 @@ class AlbumentationsDatasetCV2(Dataset):
                 "area": torch.as_tensor(augmented["area"]),
                 "iscrowd": torch.as_tensor(augmented["iscrowd"]),
             }
-            
+
             return augmented["image"], targets
 
         return image, target

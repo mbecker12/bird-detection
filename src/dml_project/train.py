@@ -28,10 +28,15 @@ if __name__ == "__main__":
         device = torch.device("cpu")
         print_freq = 10
         epoch = 0
-        
+
         for epoch in range(5):
             metric_logger = train_one_epoch(
-                faster_rcnn_model, optimizer, train_dataloader, device, epoch, print_freq
+                faster_rcnn_model,
+                optimizer,
+                train_dataloader,
+                device,
+                epoch,
+                print_freq,
             )
 
         print(metric_logger)
