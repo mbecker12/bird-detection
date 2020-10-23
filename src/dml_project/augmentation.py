@@ -20,40 +20,75 @@ from dml_project.util import load_images, load_bbox_file
 from dml_project.const import *
 
 
-def albumentations_transform(mode):
+def albumentations_transform(mode, normalize=True):
     if mode == "train":
-        augmentation = a.Compose(
-            [
-                at.ShiftScaleRotate(
-                    shift_limit=0.1, scale_limit=(-0.1, 0.25), rotate_limit=15, p=0.5
-                ),
-                a.Resize(MIN_HEIGHT, MIN_WIDTH),
-                at.ColorJitter(
-                    brightness=0.08, contrast=0.06, saturation=0.06, hue=0.07, p=0.5
-                ),
-                at.GaussNoise(var_limit=0.1, p=0.5),
-                a.Normalize(
-                    mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225],
-                ),
-                ToTensorV2(),
-            ],
-            bbox_params=a.BboxParams(format="yolo", label_fields=["category_ids"]),
-        )
+        if normalize:
+            augmentation = a.Compose(
+                [
+                    at.ShiftScaleRotate(
+                        shift_limit=0.1,
+                        scale_limit=(-0.1, 0.25),
+                        rotate_limit=15,
+                        p=0.5,
+                    ),
+                    a.Resize(MIN_HEIGHT, MIN_WIDTH),
+                    at.ColorJitter(
+                        brightness=0.08, contrast=0.06, saturation=0.06, hue=0.07, p=0.5
+                    ),
+                    at.GaussNoise(var_limit=0.1, p=0.5),
+                    a.Normalize(
+                        mean=[0.485, 0.456, 0.406],
+                        std=[0.229, 0.224, 0.225],
+                    ),
+                    ToTensorV2(),
+                ],
+                bbox_params=a.BboxParams(format="yolo", label_fields=["category_ids"]),
+            )
+        else:
+            augmentation = a.Compose(
+                [
+                    at.ShiftScaleRotate(
+                        shift_limit=0.1,
+                        scale_limit=(-0.1, 0.25),
+                        rotate_limit=15,
+                        p=0.5,
+                    ),
+                    a.Resize(MIN_HEIGHT, MIN_WIDTH),
+                    at.ColorJitter(
+                        brightness=0.08, contrast=0.06, saturation=0.06, hue=0.07, p=0.5
+                    ),
+                    at.GaussNoise(var_limit=0.1, p=0.5),
+                    a.ToFloat(),
+                    ToTensorV2(),
+                ],
+                bbox_params=a.BboxParams(format="yolo", label_fields=["category_ids"]),
+            )
     elif mode == "val":
-        augmentation = a.Compose(
-            [
-                a.Resize(MIN_HEIGHT, MIN_WIDTH),
-                a.Normalize(
-                    mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225],
+        if normalize:
+            augmentation = a.Compose(
+                [
+                    a.Resize(MIN_HEIGHT, MIN_WIDTH),
+                    a.Normalize(
+                        mean=[0.485, 0.456, 0.406],
+                        std=[0.229, 0.224, 0.225],
+                    ),
+                    ToTensorV2(),
+                ],
+                bbox_params=a.BboxParams(
+                    format="yolo", label_fields=["category_ids"], min_visibility=0.2
                 ),
-                ToTensorV2(),
-            ],
-            bbox_params=a.BboxParams(
-                format="yolo", label_fields=["category_ids"], min_visibility=0.2
-            ),
-        )
+            )
+        else:
+            augmentation = a.Compose(
+                [
+                    a.Resize(MIN_HEIGHT, MIN_WIDTH),
+                    a.ToFloat(),
+                    ToTensorV2(),
+                ],
+                bbox_params=a.BboxParams(
+                    format="yolo", label_fields=["category_ids"], min_visibility=0.2
+                ),
+            )
     else:
         raise Exception(
             f"Error! Mode {mode} not supported for choosing an augmentation pipeline. Must be either 'train' or 'val'."
