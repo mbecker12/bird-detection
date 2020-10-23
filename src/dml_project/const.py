@@ -1,4 +1,7 @@
 DATA_PATH = "data/"
+TRAIN_PATH = "data/train/"
+VAL_PATH   = "data/val/"
+TEST_PATH  = "data/test/"
 
 MIN_WIDTH = 800
 MIN_HEIGHT = 800

@@ -16,7 +16,7 @@ import sys
 import os
 import numpy as np
 from copy import deepcopy
-from training_utils import (
+from dml_project.training_utils import (
     validation_string,
     update_plot_data,
     update_plots,
@@ -71,17 +71,9 @@ if __name__ == "__main__":
         _, faster_rcnn_model = define_model()
 
         # ~~~~~~~~~~~~ load image paths ~~~~~~~~~~~ #
-        all_img_paths = load_images(DATA_PATH, num_jpg=10, num_png=30)
-
-        # ~~~ split paths into train, val, test ~~~ #
-        np.random.shuffle(all_img_paths)
-        train_ratio, val_ratio, test_ratio = 0.75, 0.15, 0.1
-        train_count = int(train_ratio * len(all_img_paths))
-        val_count = int(val_ratio * len(all_img_paths))
-
-        train_paths = all_img_paths[:train_count]
-        val_paths = all_img_paths[train_count : train_count + val_count]
-        test_paths = all_img_paths[train_count + val_count :]
+        train_paths = load_images(TRAIN_PATH)
+        val_paths   = load_images(VAL_PATH)
+        test_paths  = load_images(TEST_PATH)
 
         # ~~~~~~~~~~~~~ load datasets ~~~~~~~~~~~~~ #
         train_dataset = AlbumentationsDatasetCV2(
@@ -204,7 +196,13 @@ if __name__ == "__main__":
     if sys.argv[1] == "eval":
         _, faster_rcnn_model = define_model()
         faster_rcnn_model.load_state_dict(torch.load("second_model"))
-        val_dataloader = setup_dataloader(mode="val", batch_size=6)
+
+        val_paths   = load_images(VAL_PATH)
+        val_dataset = AlbumentationsDatasetCV2(
+            file_paths=val_paths,
+            transform=albumentations_transform("val"),
+        )
+        val_dataloader   = setup_dataloader(dataset=val_dataset,   batch_size=6, num_workers=0)
 
         faster_rcnn_model.eval()
         with torch.no_grad():
