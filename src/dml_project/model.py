@@ -117,7 +117,13 @@ def custom_collate_fn_mem_efficient(loaded_data):
 
 
 def setup_dataloader(
-    mode=None, batch_size=16, num_workers=0, shuffle=True, num_jpg=-1, num_png=-1, dataset=None
+    mode=None,
+    batch_size=16,
+    num_workers=0,
+    shuffle=True,
+    num_jpg=-1,
+    num_png=-1,
+    dataset=None,
 ):
     if dataset is None:
         dataset = AlbumentationsDatasetCV2(

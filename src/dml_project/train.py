@@ -1,3 +1,4 @@
+from typing import Dict, Union, List
 import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection import FasterRCNN
@@ -14,6 +15,14 @@ from torch.optim import Adam
 import sys
 import os
 import numpy as np
+from copy import deepcopy
+from training_utils import (
+    validation_string,
+    update_plot_data,
+    update_plots,
+    setup_plots,
+    LOSS_KEYS,
+)
 
 # import plotly.graph_objects as go
 
@@ -23,43 +32,46 @@ sys.path.append(os.getcwd() + "/src/vision/references/detection")
 from vision.references.detection.engine import train_one_epoch, evaluate
 from vision.references.detection.utils import reduce_dict, MetricLogger, SmoothedValue
 
+
 def validate(model, data_loader):
     with torch.no_grad():
-        model.eval()
-        metric_logger = MetricLogger(delimiter="  ")
-        metric_logger.add_meter('lr', SmoothedValue(window_size=1, fmt='{value:.6f}'))
-        header = 'Epoch: [{}]'.format(epoch)
-
         device = torch.device("cpu")
         model.to(device)
         print_freq = 1
 
-        val_losses = [None] * len(data_loader)
-        for i, (images, targets) in enumerate(metric_logger.log_every(data_loader, print_freq, header)):
+        loss_dicts = [None] * len(data_loader)
+        loss_summary = {}
+        # for images, targets in metric_logger.log_every(data_loader, print_freq, header):
+        for i, (images, targets) in enumerate(data_loader):
             images = list(image.to(device) for image in images)
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
-            loss_dict = model(images, targets)[0]
+            loss_dict = model(images, targets)
+            loss_dicts[i] = loss_dict
 
-            print(f"{loss_dict=}")
-            losses = sum(loss for loss in loss_dict.values())
+            for k, v in loss_dict.items():
+                if loss_summary.get(k, None) is None:
+                    loss_summary[k] = [v]
+                else:
+                    loss_summary[k].append(v)
 
-            # reduce losses over all GPUs for logging purposes
-            loss_dict_reduced = reduce_dict(loss_dict)
-            losses_reduced = sum(loss for loss in loss_dict_reduced.values())
+        loss_summary["loss"] = [None] * len(data_loader)
+        for i in range(len(data_loader)):
+            loss_summary["loss"][i] = 0
+            for k, v in loss_summary.items():
+                if k == "loss":
+                    continue
+                loss_summary["loss"][i] += v[i]
 
-            val_losses[i] = losses_reduced
-    
-    return val_losses
-    
+    return loss_dicts, loss_summary
 
 
 if __name__ == "__main__":
     if sys.argv[1] == "train":
         _, faster_rcnn_model = define_model()
-        
+
         # ~~~~~~~~~~~~ load image paths ~~~~~~~~~~~ #
-        all_img_paths = load_images(DATA_PATH)
+        all_img_paths = load_images(DATA_PATH, num_jpg=10, num_png=30)
 
         # ~~~ split paths into train, val, test ~~~ #
         np.random.shuffle(all_img_paths)
@@ -69,8 +81,8 @@ if __name__ == "__main__":
 
         train_paths = all_img_paths[:train_count]
         val_paths = all_img_paths[train_count : train_count + val_count]
-        test_paths = all_img_paths[train_count + val_count:]
-        
+        test_paths = all_img_paths[train_count + val_count :]
+
         # ~~~~~~~~~~~~~ load datasets ~~~~~~~~~~~~~ #
         train_dataset = AlbumentationsDatasetCV2(
             file_paths=train_paths,
@@ -87,33 +99,47 @@ if __name__ == "__main__":
             transform=albumentations_transform("val"),
         )
 
-        train_dataloader = setup_dataloader(dataset=train_dataset, batch_size=2, num_workers=0)
-        val_dataloader   = setup_dataloader(dataset=val_dataset,   batch_size=2, num_workers=0)
-        test_dataloader  = setup_dataloader(dataset=test_dataset,  batch_size=2, num_workers=0)
+        train_dataloader = setup_dataloader(
+            dataset=train_dataset, batch_size=2, num_workers=0
+        )
+        val_dataloader = setup_dataloader(
+            dataset=val_dataset, batch_size=2, num_workers=0
+        )
+        test_dataloader = setup_dataloader(
+            dataset=test_dataset, batch_size=2, num_workers=0
+        )
 
         params = [p for p in faster_rcnn_model.parameters() if p.requires_grad]
         optimizer = Adam(params, lr=0.0001, weight_decay=0.0005)
-        
+
         # and a learning rate scheduler which decreases the learning rate by
         # 10x every 3 epochs
-        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(
+            optimizer, step_size=3, gamma=0.1
+        )
         lr_plateau = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, 
-            factor=0.1, 
-            patience=10, 
-            min_lr=1e-8
+            optimizer, factor=0.1, patience=10, min_lr=1e-8
         )
         lr_lambda = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda ep: 0.95 ** ep)
-        
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print_freq = 10
         num_epochs = 4
 
         faster_rcnn_model.to(device)
-        
+
         # setup saving at best validation score
-        # ...
-        metric_loggers = [None] * num_epochs
+        best_model = None
+        best_val_loss = np.inf
+
+        # metric_loggers = [None] * num_epochs
+        # val_metrics = [None] * num_epochs
+        # val_loss_summaries = [None] * num_epochs
+
+        plot_train_losses = {loss_key: [] for loss_key in LOSS_KEYS}
+        plot_valid_losses = {loss_key: [] for loss_key in LOSS_KEYS}
+        fig, axs_dict = setup_plots()
+
         for epoch in range(num_epochs):
             metric_logger = train_one_epoch(
                 faster_rcnn_model,
@@ -123,19 +149,48 @@ if __name__ == "__main__":
                 epoch,
                 print_freq,
             )
+            # metric_logger = None  # stand-in for testing val function
 
             # update the learning rate
             lr_lambda.step()
-            # lr_scheduler.step()
             # evaluate
-            # val_losses = validate(faster_rcnn_model, val_dataloader)
-            # print(f"{val_losses=}")
-            metric_loggers[epoch] = metric_logger
+            _, val_loss_summary = validate(faster_rcnn_model, val_dataloader)
+            # TODO: is it better to use median or avg loss
+            # this is done for early saving/stopping of training process
+            loss = np.median(val_loss_summary["loss"])
 
-        print(f"{metric_logger.meters.items()=}")
+            val_string = validation_string(val_loss_summary)
+            print(val_string)
 
-        torch.save(faster_rcnn_model.state_dict(), "second_model")
-        
+            optimizer.zero_grad()
+            if loss < best_val_loss:
+                print(f"{best_val_loss=}")
+                best_val_loss = loss
+                best_model = deepcopy(faster_rcnn_model.to(torch.device("cpu")))
+
+            # val_metrics[epoch] = val_losses
+            # metric_loggers[epoch] = metric_logger
+            # val_loss_summaries[epoch] = val_loss_summary
+
+            new_train_data = {
+                loss_key: metric_logger.meters[loss_key].median
+                for loss_key in LOSS_KEYS
+            }
+            new_valid_data = {
+                loss_key: np.median(val_loss_summary[loss_key])
+                for loss_key in LOSS_KEYS
+            }
+
+            plot_train_losses, plot_valid_losses = update_plot_data(
+                plot_train_losses, new_train_data, plot_valid_losses, new_valid_data
+            )
+
+            update_plots(
+                fig, axs_dict, train_data=plot_train_losses, val_data=plot_valid_losses
+            )
+
+        torch.save(best_model.state_dict(), "test_model")
+
     if sys.argv[1] == "val":
         _, faster_rcnn_model = define_model()
         faster_rcnn_model.load_state_dict(torch.load("second_model"))
