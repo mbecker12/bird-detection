@@ -215,3 +215,20 @@ if __name__ == "__main__":
                     None, images[j], normalize_boxes(outp["boxes"], images[j].shape), [e.item() for e in outp["labels"]]
                 )
                 plt.show()
+                
+    if sys.argv[1] == "coco":
+        _, faster_rcnn_model = define_model()
+        faster_rcnn_model.load_state_dict(torch.load("NO_NORMALIZE"))
+
+        val_paths = load_images(TEST_PATH, num_jpg=30, num_png=5)
+        # val_paths = load_images("gimages")
+        val_dataset = AlbumentationsDatasetCV2(
+            file_paths=val_paths,
+            transform=albumentations_transform("val", normalize=False),
+        )
+        val_dataloader = setup_dataloader(
+            dataset=val_dataset, batch_size=4, num_workers=0
+        )
+
+        device = torch.device("cpu")
+        coco_evaluator = evaluate(faster_rcnn_model, val_dataloader, device)
