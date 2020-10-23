@@ -220,14 +220,14 @@ if __name__ == "__main__":
         _, faster_rcnn_model = define_model()
         faster_rcnn_model.load_state_dict(torch.load("NO_NORMALIZE"))
 
-        val_paths = load_images(TEST_PATH, num_jpg=30, num_png=5)
-        # val_paths = load_images("gimages")
+        val_paths = load_images(TEST_PATH)
+        
         val_dataset = AlbumentationsDatasetCV2(
             file_paths=val_paths,
             transform=albumentations_transform("val", normalize=False),
         )
         val_dataloader = setup_dataloader(
-            dataset=val_dataset, batch_size=4, num_workers=0
+            dataset=val_dataset, batch_size=2, num_workers=0
         )
 
         device = torch.device("cpu")
