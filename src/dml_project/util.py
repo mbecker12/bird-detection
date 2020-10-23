@@ -9,6 +9,7 @@ import matplotlib.patches as patches
 from glob import glob
 import numpy as np
 import torch
+from dml_project.const import CLASS_NAMES
 
 
 def show_img(img_path: str):
@@ -106,7 +107,7 @@ def load_bbox_file(img_path, img_shape=None):
     return target
 
 
-def plot_img_and_boxes(img_path: str, cv2_img=None, bboxes: List = None):
+def plot_img_and_boxes(img_path: str, cv2_img=None, bboxes: List = None, label_ids: List = None):
     if img_path is not None:
         cv2_img = cv2.imread(img_path)
         bboxes = load_bbox_file(img_path)["boxes"]
@@ -121,7 +122,8 @@ def plot_img_and_boxes(img_path: str, cv2_img=None, bboxes: List = None):
 
     fig, ax = plt.subplots()
 
-    for box in bboxes:
+    for i, box in enumerate(bboxes):
+        label_id = label_ids[i]
         width = cv2_shape[1] * box[2]
         height = cv2_shape[0] * box[3]
 
@@ -131,6 +133,7 @@ def plot_img_and_boxes(img_path: str, cv2_img=None, bboxes: List = None):
         x = cv2_shape[1] * box[0] - 0.5 * width
         y = cv2_shape[0] * box[1] - 0.5 * height
 
+        plt.text(x, y, CLASS_NAMES[label_id], color="#FFC0CB")
         rect = patches.Rectangle((x, y), width, height, fill=False, color="#FFC0CB")
         ax.add_patch(rect)
 

@@ -31,8 +31,6 @@ def setup_plots(n_metrics=5):
 
 
 def update_plots(fig, axs_dict: Dict, train_data: Dict, val_data: Dict, n_metrics=5):
-    print(f"{train_data=}")
-    print(f"{val_data=}")
     for i, (k, ax) in enumerate(axs_dict.items()):
 
         (train_graph,) = ax.plot(train_data[k])

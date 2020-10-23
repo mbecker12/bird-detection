@@ -24,18 +24,15 @@ from dml_project.training_utils import (
     LOSS_KEYS,
 )
 
-# import plotly.graph_objects as go
-
-
 sys.path.append(os.getcwd() + "/src/vision")
 sys.path.append(os.getcwd() + "/src/vision/references/detection")
 from vision.references.detection.engine import train_one_epoch, evaluate
 from vision.references.detection.utils import reduce_dict, MetricLogger, SmoothedValue
 
+MODEL_NAME = "NO_NORMALIZE"
 
-def validate(model, data_loader):
+def validate(model, data_loader, device = torch.device("cpu")):
     with torch.no_grad():
-        device = torch.device("cpu")
         model.to(device)
         print_freq = 1
 
@@ -51,9 +48,9 @@ def validate(model, data_loader):
 
             for k, v in loss_dict.items():
                 if loss_summary.get(k, None) is None:
-                    loss_summary[k] = [v]
+                    loss_summary[k] = [v.item()]
                 else:
-                    loss_summary[k].append(v)
+                    loss_summary[k].append(v.item())
 
         loss_summary["loss"] = [None] * len(data_loader)
         for i in range(len(data_loader)):
@@ -78,17 +75,17 @@ if __name__ == "__main__":
         # ~~~~~~~~~~~~~ load datasets ~~~~~~~~~~~~~ #
         train_dataset = AlbumentationsDatasetCV2(
             file_paths=train_paths,
-            transform=albumentations_transform("train"),
+            transform=albumentations_transform("train", normalize=False),
         )
 
         val_dataset = AlbumentationsDatasetCV2(
             file_paths=val_paths,
-            transform=albumentations_transform("val"),
+            transform=albumentations_transform("val", normalize=False),
         )
 
         test_dataset = AlbumentationsDatasetCV2(
             file_paths=test_paths,
-            transform=albumentations_transform("val"),
+            transform=albumentations_transform("val", normalize=False),
         )
 
         train_dataloader = setup_dataloader(
@@ -133,6 +130,7 @@ if __name__ == "__main__":
         fig, axs_dict = setup_plots()
 
         for epoch in range(num_epochs):
+            
             metric_logger = train_one_epoch(
                 faster_rcnn_model,
                 optimizer,
@@ -146,7 +144,7 @@ if __name__ == "__main__":
             # update the learning rate
             lr_lambda.step()
             # evaluate
-            _, val_loss_summary = validate(faster_rcnn_model, val_dataloader)
+            _, val_loss_summary = validate(faster_rcnn_model, val_dataloader, device)
             # TODO: is it better to use median or avg loss
             # this is done for early saving/stopping of training process
             loss = np.median(val_loss_summary["loss"])
@@ -156,9 +154,10 @@ if __name__ == "__main__":
 
             optimizer.zero_grad()
             if loss < best_val_loss:
-                print(f"{best_val_loss=}")
                 best_val_loss = loss
+                print(f"{best_val_loss=}")
                 best_model = deepcopy(faster_rcnn_model.to(torch.device("cpu")))
+                faster_rcnn_model.to(device)
 
             # val_metrics[epoch] = val_losses
             # metric_loggers[epoch] = metric_logger
@@ -181,11 +180,12 @@ if __name__ == "__main__":
                 fig, axs_dict, train_data=plot_train_losses, val_data=plot_valid_losses
             )
 
-        torch.save(best_model.state_dict(), "test_model")
+        torch.save(best_model.state_dict(), MODEL_NAME)
+        plt.savefig(MODEL_NAME + "_training_losses.jpg")
 
     if sys.argv[1] == "val":
         _, faster_rcnn_model = define_model()
-        faster_rcnn_model.load_state_dict(torch.load("second_model"))
+        faster_rcnn_model.load_state_dict(torch.load(MODEL_NAME))
 
         faster_rcnn_model.eval()
         val_dataloader = setup_dataloader(mode="val", batch_size=4)
@@ -195,14 +195,14 @@ if __name__ == "__main__":
 
     if sys.argv[1] == "eval":
         _, faster_rcnn_model = define_model()
-        faster_rcnn_model.load_state_dict(torch.load("second_model"))
+        faster_rcnn_model.load_state_dict(torch.load(MODEL_NAME))
 
-        val_paths   = load_images(VAL_PATH)
+        val_paths   = load_images(sys.argv[2] if len(sys.argv) > 2 else VAL_PATH)
         val_dataset = AlbumentationsDatasetCV2(
             file_paths=val_paths,
-            transform=albumentations_transform("val"),
+            transform=albumentations_transform("val", normalize=False),
         )
-        val_dataloader   = setup_dataloader(dataset=val_dataset,   batch_size=6, num_workers=0)
+        val_dataloader   = setup_dataloader(dataset=val_dataset,   batch_size=20, num_workers=0)
 
         faster_rcnn_model.eval()
         with torch.no_grad():
@@ -210,7 +210,8 @@ if __name__ == "__main__":
             outputs = faster_rcnn_model(images)
 
             for j, outp in enumerate(outputs):
+                print(f"{outp=}")
                 plot_img_and_boxes(
-                    None, images[j], normalize_boxes(outp["boxes"], images[j].shape)
+                    None, images[j], normalize_boxes(outp["boxes"], images[j].shape), [e.item() for e in outp["labels"]]
                 )
                 plt.show()

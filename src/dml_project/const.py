@@ -9,6 +9,15 @@ NUM_CHANNELS = 3
 
 NUM_CLASSES = 6
 
+CLASS_NAMES = [
+    "Crimson-rumped toucanet",
+    "Scarlet Ibis",
+    "Other toucan",
+    "Sunbittern",
+    "Toco toucan",
+    "Inca jay"
+]
+
 # TODO: models expect pixel values in [0, 1]
 # edit: before it's normalizing the images itself
 # and not as previously assumed in [-1, 1]
