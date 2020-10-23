@@ -18,8 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-
-def test_augmentation_pipeline_only_img():
+def test_augmentation_pipeline_only_img_normalization():
     """
     Check that a predefined augmentation pipeline behaves as expected on few example images (without bboxes).
     Assure that datatypes stay as expected and is in a pytorch-usable format at the end.
@@ -51,8 +50,52 @@ def test_augmentation_pipeline_only_img():
     )
 
     for i, (img, targets) in enumerate(dataset):
+        assert img.dtype == torch.float32
         assert -2 <= img.min() <= 0
         assert 0 <= img.max() <= 2
+
+        # plot_img_and_boxes(image_paths[i])
+        # plot_img_and_boxes(None, img, boxes)
+        # plt.show()
+
+
+def test_augmentation_pipeline_only_img():
+    """
+    Check that a predefined augmentation pipeline behaves as expected on few example images (without bboxes).
+    Assure that datatypes stay as expected and is in a pytorch-usable format at the end.
+    """
+    image_paths = load_images(DATA_PATH, num_jpg=3, num_png=3)
+    resize_width = 512
+    resize_height = 512
+    albumentations_transform = a.Compose(
+        [
+            at.ShiftScaleRotate(
+                shift_limit=0.1, scale_limit=(-0.1, 0.5), rotate_limit=15, p=1.0
+            ),
+            a.Resize(resize_height, resize_width),
+            at.ColorJitter(
+                brightness=0.1, contrast=0.07, saturation=0.07, hue=0.07, p=1.0
+            ),
+            at.GaussNoise(var_limit=0.1, p=1.0),
+            a.ToFloat(),
+            # a.Normalize(
+            #     mean=[0.5, 0.5, 0.5],
+            #     std=[0.5, 0.5, 0.5],
+            # ),
+            ToTensorV2(),
+        ]
+    )
+
+    dataset = AlbumentationsDatasetCV2(
+        file_paths=image_paths,
+        transform=albumentations_transform,
+    )
+
+    for i, (img, targets) in enumerate(dataset):
+        assert img.dtype == torch.float32
+        # assert -2 <= img.min() <= 0
+        assert 0 <= img.max() <= 1
+        assert 0 <= img.min() <= 1
 
         # plot_img_and_boxes(image_paths[i])
         # plot_img_and_boxes(None, img, boxes)
@@ -78,10 +121,11 @@ def test_augmentation_pipeline_with_bbox():
                 brightness=0.1, contrast=0.07, saturation=0.07, hue=0.07, p=1.0
             ),
             at.GaussNoise(var_limit=0.1, p=1.0),
-            a.Normalize(
-                mean=[0.5, 0.5, 0.5],
-                std=[0.5, 0.5, 0.5],
-            ),
+            a.ToFloat(),
+            # a.Normalize(
+            #     mean=[0.5, 0.5, 0.5],
+            #     std=[0.5, 0.5, 0.5],
+            # ),
             ToTensorV2(),
         ],
         bbox_params=a.BboxParams(format="yolo", label_fields=["category_ids"]),
@@ -96,8 +140,9 @@ def test_augmentation_pipeline_with_bbox():
 
         boxes = targets["boxes"]
         class_idx = targets["labels"]
-        assert -2 <= img.min() <= 0
-        assert 0 <= img.max() <= 2
+        assert img.dtype == torch.float32
+        assert 0 <= img.max() <= 1
+        assert 0 <= img.min() <= 1
 
         for box in boxes:
             assert 0 <= box[0] <= 1
