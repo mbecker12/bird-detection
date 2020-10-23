@@ -145,3 +145,19 @@ if __name__ == "__main__":
         device = torch.device("cpu")
         coco_evaluator = evaluate(faster_rcnn_model, val_dataloader, device)
         print(f"{coco_evaluator=}")
+
+    if sys.argv[1] == "eval":
+        _, faster_rcnn_model = define_model()
+        faster_rcnn_model.load_state_dict(torch.load("second_model"))
+        val_dataloader = setup_dataloader(mode="val", batch_size=6)
+
+        faster_rcnn_model.eval()
+        with torch.no_grad():
+            images, targets = next(iter(val_dataloader))
+            outputs = faster_rcnn_model(images)
+
+            for j, outp in enumerate(outputs):
+                plot_img_and_boxes(
+                    None, images[j], normalize_boxes(outp["boxes"], images[j].shape)
+                )
+                plt.show()

@@ -99,18 +99,18 @@ def test_train():
 #             # plt.show()
 
 
-# def test_eval_with_loaded_model():
-#     _, faster_rcnn_model = define_model()
-#     faster_rcnn_model.load_state_dict(torch.load("second_model"))
-#     val_dataloader = setup_dataloader(mode="val", batch_size=6)
+def test_eval_with_loaded_model():
+    _, faster_rcnn_model = define_model()
+    faster_rcnn_model.load_state_dict(torch.load("second_model"))
+    val_dataloader = setup_dataloader(mode="val", batch_size=6)
 
-#     faster_rcnn_model.eval()
-#     with torch.no_grad():
-#         images, targets = next(iter(val_dataloader))
-#         outputs = faster_rcnn_model(images)
+    faster_rcnn_model.eval()
+    with torch.no_grad():
+        images, targets = next(iter(val_dataloader))
+        outputs = faster_rcnn_model(images)
 
-#         for j, outp in enumerate(outputs):
-#             plot_img_and_boxes(
-#                 None, images[j], normalize_boxes(outp["boxes"], images[j].shape)
-#             )
-#             # plt.show()
+        for j, outp in enumerate(outputs):
+            plot_img_and_boxes(
+                None, images[j], normalize_boxes(outp["boxes"], images[j].shape)
+            )
+            # plt.show()
