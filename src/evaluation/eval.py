@@ -229,7 +229,7 @@ def get_avg_precision_at_iou(gt_boxes, pred_bb, iou_thr=0.5):
         'recalls': recalls,
         'model_thrs': model_thrs}
 
-def map_evaluation(model, data_loader, device):
+def map_evaluation(model, data_loader, device, iou_thr=0.5):
     from dml_project.util import plot_img_and_boxes, normalize_boxes
     model.eval()
     model.to(device)
@@ -249,8 +249,9 @@ def map_evaluation(model, data_loader, device):
                     "scores": outputs[j]["scores"].tolist()
                 }
 
-    results = get_avg_precision_at_iou(gt_boxes, pred_boxes, iou_thr=0.3)
-    print()
-    print()
-    print()
-    print(f"{results=}")
+    results = get_avg_precision_at_iou(gt_boxes, pred_boxes, iou_thr=iou_thr)
+    # print()
+    # print()
+    # print()
+    # print(f"{results=}")
+    return results

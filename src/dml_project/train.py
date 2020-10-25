@@ -230,5 +230,11 @@ if __name__ == "__main__":
             dataset=val_dataset, batch_size=2, num_workers=0
         )
 
-        device = torch.device("cpu")
-        coco_evaluator = evaluate(faster_rcnn_model, val_dataloader, device)
+        from evaluation.eval import map_evaluation
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        results = map_evaluation(faster_rcnn_model, val_dataloader, device, iou_thr=0.5)
+        # device = torch.device("cpu")
+        # coco_evaluator = evaluate(faster_rcnn_model, val_dataloader, device)
+        print(f"Average Precision: {results['avg_prec']}")
+        plt.plot(results["recalls"][::-1], results["precisions"][::-1])
+        plt.show()
