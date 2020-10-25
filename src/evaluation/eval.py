@@ -73,8 +73,8 @@ def calc_iou(gt_bbox, pred_bbox):
     union_area = (GT_bbox_area + Pred_bbox_area - intersection_area)
     iou = intersection_area/union_area
     # print(f"{iou=}")
-    if iou > 0.5:
-        print(f"################################################################################################# something good just happened")
+    # if iou > 0.5:
+        # print(f"################################################################################################# something good just happened")
     return iou
 
 def calc_precision_recall(image_results):
@@ -93,15 +93,15 @@ def calc_precision_recall(image_results):
     false_positive=0
     false_negative=0
     for img_id, res in image_results.items():
-        true_positive +=res['true_positive']
+        true_positive += res['true_positive']
         false_positive += res['false_positive']
         false_negative += res['false_negative']
         try:
-            precision = true_positive/(true_positive+ false_positive)
+            precision = true_positive / (true_positive + false_positive)
         except ZeroDivisionError:
             precision=0.0
         try:
-            recall = true_positive/(true_positive + false_negative)
+            recall = true_positive / (true_positive + false_negative)
         except ZeroDivisionError:
             recall=0.0
     return (precision, recall)
@@ -169,7 +169,6 @@ def get_avg_precision_at_iou(gt_boxes, pred_bb, iou_thr=0.5):
     sorted_model_scores= sorted(model_scores.keys())
     # Sort the predicted boxes in descending order (lowest scoring boxes first):
     for img_id in pred_bb.keys():
-        
         arg_sort = np.argsort(pred_bb[img_id]['scores'])
         pred_bb[img_id]['scores'] = np.array(pred_bb[img_id]['scores'])[arg_sort].tolist()
         pred_bb[img_id]['boxes'] = np.array(pred_bb[img_id]['boxes'])[arg_sort].tolist()
@@ -202,7 +201,7 @@ def get_avg_precision_at_iou(gt_boxes, pred_bb, iou_thr=0.5):
             pred_boxes_pruned[img_id]['boxes']= pred_boxes_pruned[img_id]['boxes'][start_idx:]
             # Recalculate image results for this image
             # print(img_id)
-            img_results[img_id] = get_single_image_results(gt_boxes_img, pred_boxes_pruned[img_id]['boxes'], iou_thr=0.5)
+            img_results[img_id] = get_single_image_results(gt_boxes_img, pred_boxes_pruned[img_id]['boxes'], iou_thr=iou_thr)
             # calculate precision and recall
         prec, rec = calc_precision_recall(img_results)
         precisions.append(prec)
@@ -230,7 +229,6 @@ def get_avg_precision_at_iou(gt_boxes, pred_bb, iou_thr=0.5):
         'model_thrs': model_thrs}
 
 def map_evaluation(model, data_loader, device, iou_thr=0.5):
-    from dml_project.util import plot_img_and_boxes, normalize_boxes
     model.eval()
     model.to(device)
     with torch.no_grad():
@@ -249,9 +247,12 @@ def map_evaluation(model, data_loader, device, iou_thr=0.5):
                     "scores": outputs[j]["scores"].tolist()
                 }
 
-    results = get_avg_precision_at_iou(gt_boxes, pred_boxes, iou_thr=iou_thr)
+    all_results = {}
+    for iou in [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]:
+        results = get_avg_precision_at_iou(gt_boxes, pred_boxes, iou_thr=iou)
+        all_results[str(iou)] = results
     # print()
     # print()
     # print()
-    # print(f"{results=}")
-    return results
+    # print(f"{all_results=}")
+    return all_results

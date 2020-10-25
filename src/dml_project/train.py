@@ -218,7 +218,9 @@ if __name__ == "__main__":
                 
     if sys.argv[1] == "coco":
         _, faster_rcnn_model = define_model()
-        faster_rcnn_model.load_state_dict(torch.load("NO_NORMALIZE"))
+        model_name = "STRONG_AUG"
+        # model_name = "MORE_FEATURE_MAPS"
+        faster_rcnn_model.load_state_dict(torch.load(model_name))
 
         val_paths = load_images(TEST_PATH)
         
@@ -235,6 +237,21 @@ if __name__ == "__main__":
         results = map_evaluation(faster_rcnn_model, val_dataloader, device, iou_thr=0.5)
         # device = torch.device("cpu")
         # coco_evaluator = evaluate(faster_rcnn_model, val_dataloader, device)
-        print(f"Average Precision: {results['avg_prec']}")
-        plt.plot(results["recalls"][::-1], results["precisions"][::-1])
-        plt.show()
+        import json
+        import os
+        os.makedirs(f"results", exist_ok=True)
+        os.makedirs(f"results/{model_name}", exist_ok=True)
+        for iou in results.keys():
+            print(f"Average Precision @ {iou}: {results[iou]['avg_prec']}")
+            plt.scatter(results[iou]["recalls"][::-1], results[iou]["precisions"][::-1])
+            plt.xlabel("Recall")
+            plt.ylabel("Precision")
+            plt.title(model_name + f" iou {iou}")
+            plt.show()
+
+            for k in results[iou].keys():
+                with open(f"results/{model_name}/{iou}_{k}", "w") as results_file:
+                    if "avg" in k:
+                        results_file.write(str(results[iou][k]))
+                    else:
+                        json.dump(list(results[iou][k]), results_file)
