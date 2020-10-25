@@ -1,3 +1,14 @@
+"""
+Calculate mAP score
+based on code from:
+https://towardsdatascience.com/evaluating-performance-of-an-object-detection-model-137a349c517b
+
+see also
+https://towardsdatascience.com/breaking-down-mean-average-precision-map-ae462f623a52
+for explanations
+"""
+
+
 import numpy as np
 import torch
 from copy import deepcopy
