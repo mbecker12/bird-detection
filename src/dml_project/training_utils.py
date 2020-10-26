@@ -1,3 +1,7 @@
+"""
+Utility functions for live plotting of loss curves during training time
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -23,10 +27,6 @@ def setup_plots(n_metrics=5):
         LOSS_KEYS[3]: axs[1][0],
         LOSS_KEYS[4]: axs[1][1],
     }
-    # axs_dict = {LOSS_KEYS[i]: axs[i] for i in range(n_metrics)}
-    # for k, ax in axs_dict:
-    #     line, = ax.plot([])
-    #     line.set_label
     return fig, axs_dict
 
 

@@ -21,6 +21,20 @@ from dml_project.const import *
 
 
 def albumentations_transform(mode, normalize=True):
+    """
+    Creates a transform object to augment existing data. Applies the following augmentations:
+
+        Training mode:
+            * Shift, scale, rotate
+            * Resize
+            * Color jitter
+            * Gaussian noise
+            * Normalization (Optional)
+
+        Validation mode:
+            * Resize
+            * Normalization (Optional)
+    """
     if mode == "train":
         if normalize:
             augmentation = a.Compose(
@@ -98,7 +112,10 @@ def albumentations_transform(mode, normalize=True):
 
 
 class AlbumentationsDatasetCV2(Dataset):
-    """__init__ and __len__ functions are the same as in TorchvisionDataset"""
+    """
+    Custom dataset class which incorporates the data augmentation classes above.
+    __init__ and __len__ functions are the same as in TorchvisionDataset
+    """
 
     def __init__(self, file_paths, transform=None):
         self.file_paths = file_paths
@@ -141,15 +158,11 @@ class AlbumentationsDatasetCV2(Dataset):
 
 
 if __name__ == "__main__":
+    """
+    Main function to test the data augmentation on a 
+    set of images and draw the transformed images
+    """
     images = load_images(DATA_PATH, num_jpg=2, num_png=5)
-    # import matplotlib.pyplot as plt
-    # for img in images:
-    #     cv2_img = cv2.imread(img)
-    #     normal_image = cv2.cvtColor(cv2_img, cv2.COLOR_BGR2RGB)
-    #     plt.imshow(normal_image)
-    #     plt.show()
-    #     # cv2.imshow("Some Image", cv2_img)
-
     start_cv2 = time()
     albumentations_transform = a.Compose(
         [

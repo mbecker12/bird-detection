@@ -27,12 +27,20 @@ from torchvision.ops import nms
 
 sys.path.append(os.getcwd() + "/src/vision")
 sys.path.append(os.getcwd() + "/src/vision/references/detection")
+# Import PyTorch module "vision" (https://github.com/pytorch/vision)
+# which implements the main logic for training
 from vision.references.detection.engine import train_one_epoch, evaluate
 from vision.references.detection.utils import reduce_dict, MetricLogger, SmoothedValue
 
 MODEL_NAME = "NO_NORMALIZE"
 
 def validate(model, data_loader, device = torch.device("cpu")):
+    """
+    Compute the validation loss.
+    Strongly based on both funtcions train_one_epoch() and evaluate() from 
+    vision.references.detection.engine.
+
+    """
     with torch.no_grad():
         model.to(device)
         print_freq = 1
@@ -65,6 +73,13 @@ def validate(model, data_loader, device = torch.device("cpu")):
 
 
 if __name__ == "__main__":
+    """
+    Select different options:
+    train - perform the training loop. This is where our training process was performed
+    eval - load some validation/test images and show predicted bounding boxes
+    coco - calculates mAP score, based on https://towardsdatascience.com/evaluating-performance-of-an-object-detection-model-137a349c517b
+        this was put in a custom submodule. Since we didn't write this piece of code ourselves, we decided not to include it for the hand-in.
+    """
     if sys.argv[1] == "train":
         _, faster_rcnn_model = define_model()
 
@@ -118,13 +133,9 @@ if __name__ == "__main__":
 
         faster_rcnn_model.to(device)
 
-        # setup saving at best validation score
+        # ~ setup saving at best validation score ~ #
         best_model = None
         best_val_loss = np.inf
-
-        # metric_loggers = [None] * num_epochs
-        # val_metrics = [None] * num_epochs
-        # val_loss_summaries = [None] * num_epochs
 
         plot_train_losses = {loss_key: [] for loss_key in LOSS_KEYS}
         plot_valid_losses = {loss_key: [] for loss_key in LOSS_KEYS}
@@ -140,14 +151,11 @@ if __name__ == "__main__":
                 epoch,
                 print_freq,
             )
-            # metric_logger = None  # stand-in for testing val function
 
             # update the learning rate
             lr_lambda.step()
             # evaluate
             _, val_loss_summary = validate(faster_rcnn_model, val_dataloader, device)
-            # TODO: is it better to use median or avg loss
-            # this is done for early saving/stopping of training process
             loss = np.median(val_loss_summary["loss"])
 
             val_string = validation_string(val_loss_summary)
@@ -159,10 +167,6 @@ if __name__ == "__main__":
                 print(f"{best_val_loss=}")
                 best_model = deepcopy(faster_rcnn_model.to(torch.device("cpu")))
                 faster_rcnn_model.to(device)
-
-            # val_metrics[epoch] = val_losses
-            # metric_loggers[epoch] = metric_logger
-            # val_loss_summaries[epoch] = val_loss_summary
 
             new_train_data = {
                 loss_key: metric_logger.meters[loss_key].median
@@ -184,22 +188,19 @@ if __name__ == "__main__":
         torch.save(best_model.state_dict(), MODEL_NAME)
         plt.savefig(MODEL_NAME + "_training_losses.jpg")
 
-    if sys.argv[1] == "val":
-        _, faster_rcnn_model = define_model()
-        faster_rcnn_model.load_state_dict(torch.load(MODEL_NAME))
-
-        faster_rcnn_model.eval()
-        val_dataloader = setup_dataloader(mode="val", batch_size=4)
-        device = torch.device("cpu")
-        coco_evaluator = evaluate(faster_rcnn_model, val_dataloader, device)
-        print(f"{coco_evaluator=}")
-
     if sys.argv[1] == "eval":
+        """
+        Feeds the selected model (MODEL_NAME) with images from an image set
+        and displays the output bboxes and classifications on the images
+        """
+
+        # ~~~~~~~~~~~~~~~ load model ~~~~~~~~~~~~~~ #
         device = torch.device("cuda")
         _, faster_rcnn_model = define_model()
-        faster_rcnn_model.load_state_dict(torch.load("FINAL"))
+        faster_rcnn_model.load_state_dict(torch.load(MODEL_NAME))
         faster_rcnn_model.to(device)
 
+        # ~~~~~~~~~~~~ init data loader ~~~~~~~~~~~ #
         val_paths   = load_images(sys.argv[2] if len(sys.argv) > 2 else VAL_PATH)
         val_dataset = AlbumentationsDatasetCV2(
             file_paths=val_paths,
@@ -207,6 +208,7 @@ if __name__ == "__main__":
         )
         val_dataloader   = setup_dataloader(dataset=val_dataset,   batch_size=10, num_workers=0)
 
+        #  run the network on each image and display the result  #
         faster_rcnn_model.eval()
         with torch.no_grad():
             images, targets = next(iter(val_dataloader))
@@ -217,15 +219,24 @@ if __name__ == "__main__":
 
                 print(f"{outp=}")
                 plot_img_and_boxes(
-                    None, images[j].to(torch.device("cpu")), normalize_boxes(outp["boxes"][keep_indexs], images[j].shape), [e.item() for e in outp["labels"][keep_indexs]]
+                    None,
+                    images[j].to(torch.device("cpu")),
+                    normalize_boxes(outp["boxes"][keep_indexs],
+                    images[j].shape),
+                    [e.item() for e in outp["labels"][keep_indexs]]
                 )
                 plt.show()
                 
     if sys.argv[1] == "coco":
+        """
+        Use the code provided by https://towardsdatascience.com/evaluating-performance-of-an-object-detection-model-137a349c517b
+        and calculate the mAP score based on the recall-precision curve explained in the same article.
+        The module 'evaluation' which is imported at the top of this section, contains the code from this article.
+        """
+
+        from evaluation.eval import map_evaluation
         _, faster_rcnn_model = define_model()
-        model_name = "FINAL"
-        # model_name = "MORE_FEATURE_MAPS"
-        faster_rcnn_model.load_state_dict(torch.load(model_name))
+        faster_rcnn_model.load_state_dict(torch.load(MODEL_NAME))
 
         val_paths = load_images(sys.argv[2] if len(sys.argv) > 2 else TEST_PATH)
         
@@ -237,11 +248,10 @@ if __name__ == "__main__":
             dataset=val_dataset, batch_size=2, num_workers=0
         )
 
-        from evaluation.eval import map_evaluation
+        
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         results = map_evaluation(faster_rcnn_model, val_dataloader, device, iou_thr=0.5)
-        # device = torch.device("cpu")
-        # coco_evaluator = evaluate(faster_rcnn_model, val_dataloader, device)
+
         import json
         import os
         os.makedirs(f"results", exist_ok=True)

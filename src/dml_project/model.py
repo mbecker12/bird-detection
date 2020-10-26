@@ -18,6 +18,9 @@ import torch
 
 
 def define_model(resnet=False):
+    """
+    Model definitions based on the torchvision example/tutorial mentioned at the top of this file.
+    """
     model = None
     # load a model pre-trained pre-trained on COCO
     if resnet:
@@ -77,6 +80,9 @@ def define_model(resnet=False):
 
 
 def custom_collate_fn_mem_efficient(loaded_data):
+    """
+    Function used by the data loader to provide batch data.
+    """
     batch_size = len(loaded_data)
 
     boxes = [
@@ -125,6 +131,10 @@ def setup_dataloader(
     num_png=-1,
     dataset=None,
 ):
+    """
+    Combine our dataset with augmentations
+    to a pytorch dataloader instance.
+    """
     if dataset is None:
         dataset = AlbumentationsDatasetCV2(
             file_paths=load_images(DATA_PATH, num_jpg=num_jpg, num_png=num_png),

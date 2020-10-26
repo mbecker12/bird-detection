@@ -37,6 +37,9 @@ def load_images(path: str, num_jpg: int = -1, num_png: int = -1) -> List:
 
 
 def normalize_boxes(boxes: List[Tuple], img_shape: Union[Tuple, List]) -> List[Tuple]:
+    """
+    Transform bounding boxes back to yolo format
+    """
     img_height = img_shape[1]
     img_width = img_shape[2]
 
@@ -59,6 +62,9 @@ def normalize_boxes(boxes: List[Tuple], img_shape: Union[Tuple, List]) -> List[T
 
 
 def recompute_boxes(boxes: List[Tuple], img_shape: Union[Tuple, List]) -> List[Tuple]:
+    """
+    Transform bounding boxes to PascalVOC format, expected by the network
+    """
     if img_shape is None:
         img_width = 1
         img_height = 1
@@ -78,6 +84,12 @@ def recompute_boxes(boxes: List[Tuple], img_shape: Union[Tuple, List]) -> List[T
 
 
 def load_bbox_file(img_path, img_shape=None):
+    """
+    Go through the list of files, find txt files containing bounding box information and load
+    the bounding box specifications.
+    If no file is present for a given image, proceed with an empy list
+    (or rather empty torch tensor) signifying pure background class.
+    """
     bbox_path = img_path.split(".")[-2]
     bbox_path += ".txt"
 
@@ -108,6 +120,9 @@ def load_bbox_file(img_path, img_shape=None):
 
 
 def plot_img_and_boxes(img_path: str, cv2_img=None, bboxes: List = None, label_ids: List = None):
+    """
+    for the sake of visualization and testing, show images and corresponding boxes (either ground truth or predictions)
+    """
     if img_path is not None:
         cv2_img = cv2.imread(img_path)
         bboxes_data = load_bbox_file(img_path)
@@ -169,7 +184,3 @@ if __name__ == "__main__":
 
         for img in images:
             plot_img_and_boxes(img)
-
-
-    # plot_img_and_boxes(path_to_image)
-    # plot_img_and_boxes(None, cv2_image_array, list_of_boxes)

@@ -36,7 +36,7 @@ def split_into_train_val_test(path, ratios = (0.75, 0.15, 0.1)):
         for file_name in data_names:
             dest_folder = path + folder_name + sep
             for file_path in glob(file_name + "*"):
-                dst = dest_folder + file_path.split(sep)[1]
+                dst = dest_folder + file_path.split(sep)[-1]
                 move(file_path, dst)
         
 
