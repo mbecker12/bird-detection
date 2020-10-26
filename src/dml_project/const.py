@@ -12,7 +12,7 @@ NUM_CLASSES = 6
 CLASS_NAMES = [
     "Crimson-rumped toucanet",
     "Scarlet Ibis",
-    "Other toucan",
+    "White-throated Toucan",
     "Sunbittern",
     "Toco toucan",
     "Inca jay"
