@@ -235,10 +235,8 @@ def map_evaluation(model, data_loader, device, iou_thr=0.5):
         gt_boxes = {}
         pred_boxes = {}
         for i, (images, targets) in enumerate(data_loader):
-            if i > 5:
-                break
-            outputs = model(images)
-
+            outputs = model([image.to(device) for image in images])
+            
             for j in range(len(images)):
                 img_id = str(hash(images[j]))
                 gt_boxes[img_id] = targets[j]["boxes"].tolist()
