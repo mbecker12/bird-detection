@@ -23,6 +23,7 @@ from dml_project.training_utils import (
     setup_plots,
     LOSS_KEYS,
 )
+from torchvision.ops import nms
 
 sys.path.append(os.getcwd() + "/src/vision")
 sys.path.append(os.getcwd() + "/src/vision/references/detection")
@@ -194,35 +195,39 @@ if __name__ == "__main__":
         print(f"{coco_evaluator=}")
 
     if sys.argv[1] == "eval":
+        device = torch.device("cuda")
         _, faster_rcnn_model = define_model()
-        faster_rcnn_model.load_state_dict(torch.load(MODEL_NAME))
+        faster_rcnn_model.load_state_dict(torch.load("FINAL"))
+        faster_rcnn_model.to(device)
 
         val_paths   = load_images(sys.argv[2] if len(sys.argv) > 2 else VAL_PATH)
         val_dataset = AlbumentationsDatasetCV2(
             file_paths=val_paths,
             transform=albumentations_transform("val", normalize=False),
         )
-        val_dataloader   = setup_dataloader(dataset=val_dataset,   batch_size=20, num_workers=0)
+        val_dataloader   = setup_dataloader(dataset=val_dataset,   batch_size=10, num_workers=0)
 
         faster_rcnn_model.eval()
         with torch.no_grad():
             images, targets = next(iter(val_dataloader))
-            outputs = faster_rcnn_model(images)
+            outputs = faster_rcnn_model([image.to(device) for image in images])
 
-            for j, outp in enumerate(outputs):
+            for j, outp in enumerate(outputs):                
+                keep_indexs = nms(outp["boxes"], outp["scores"], 0.3)
+
                 print(f"{outp=}")
                 plot_img_and_boxes(
-                    None, images[j], normalize_boxes(outp["boxes"], images[j].shape), [e.item() for e in outp["labels"]]
+                    None, images[j].to(torch.device("cpu")), normalize_boxes(outp["boxes"][keep_indexs], images[j].shape), [e.item() for e in outp["labels"][keep_indexs]]
                 )
                 plt.show()
                 
     if sys.argv[1] == "coco":
         _, faster_rcnn_model = define_model()
-        model_name = "STRONG_AUG"
+        model_name = "FINAL"
         # model_name = "MORE_FEATURE_MAPS"
         faster_rcnn_model.load_state_dict(torch.load(model_name))
 
-        val_paths = load_images(TEST_PATH)
+        val_paths = load_images(sys.argv[2] if len(sys.argv) > 2 else TEST_PATH)
         
         val_dataset = AlbumentationsDatasetCV2(
             file_paths=val_paths,
