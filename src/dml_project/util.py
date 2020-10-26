@@ -110,7 +110,9 @@ def load_bbox_file(img_path, img_shape=None):
 def plot_img_and_boxes(img_path: str, cv2_img=None, bboxes: List = None, label_ids: List = None):
     if img_path is not None:
         cv2_img = cv2.imread(img_path)
-        bboxes = load_bbox_file(img_path)["boxes"]
+        bboxes_data = load_bbox_file(img_path)
+        bboxes = bboxes_data["boxes"]
+        label_ids = bboxes_data["labels"].to(torch.device("cpu")).item()
     else:
         assert cv2_img is not None
         assert bboxes is not None
@@ -133,9 +135,9 @@ def plot_img_and_boxes(img_path: str, cv2_img=None, bboxes: List = None, label_i
         x = cv2_shape[1] * box[0] - 0.5 * width
         y = cv2_shape[0] * box[1] - 0.5 * height
 
-        plt.text(x, y, CLASS_NAMES[label_id], color="#FFC0CB")
-        rect = patches.Rectangle((x, y), width, height, fill=False, color="#FFC0CB")
+        rect = patches.Rectangle((x, y), width, height, fill=False, color="#FFC0CB", lw=5)
         ax.add_patch(rect)
+        plt.text(x, y - 10, CLASS_NAMES[label_id], color="#FFC0CB", fontsize=20)
 
     if img_path is not None:
         normal_image = cv2.cvtColor(cv2_img, cv2.COLOR_BGR2RGB)
@@ -144,11 +146,12 @@ def plot_img_and_boxes(img_path: str, cv2_img=None, bboxes: List = None, label_i
     else:
         plt.imshow(cv2_img)
 
+    plt.show()
     return fig
 
 
 if __name__ == "__main__":
-    from const import DATA_PATH
+    from dml_project.const import DATA_PATH
     from glob import glob
     import sys
 
@@ -162,30 +165,11 @@ if __name__ == "__main__":
         import matplotlib.patches as patches
         import matplotlib.pyplot as plt
 
-        images = load_images(DATA_PATH, num_jpg=5, num_png=5)
+        images = load_images("data/visual_testing", num_jpg=5, num_png=0)
 
         for img in images:
-            cv2_img = cv2.imread(img)
-            bboxes = load_bbox_file(img)
+            plot_img_and_boxes(img)
 
-            cv2_shape = cv2_img.shape
-
-            fig, ax = plt.subplots()
-
-            for box in bboxes:
-                width = cv2_shape[1] * box[3]
-                height = cv2_shape[0] * box[4]
-
-                # recompute x and y, since the boxes are defined as in yolo format
-                # with x and y being the box center
-                # but matplotlib expects x and y to be the lower left corner
-                x = cv2_shape[1] * box[1] - 0.5 * width
-                y = cv2_shape[0] * box[2] - 0.5 * height
-
-                rect = patches.Rectangle((x, y), width, height, fill=False)
-                ax.add_patch(rect)
-
-            show_img(img)
 
     # plot_img_and_boxes(path_to_image)
     # plot_img_and_boxes(None, cv2_image_array, list_of_boxes)
